@@ -14,7 +14,7 @@ env:
 jobs:
   build-frontend:
     name: Build & Push Frontend Image
-    runs-on: [self-hosted, github-runner]
+    runs-on: github-runner
     permissions:
       contents: read
       packages: write
@@ -62,7 +62,7 @@ jobs:
 
   build-backend:
     name: Build & Push Backend API Image
-    runs-on: [self-hosted, github-runner]
+    runs-on: github-runner
     permissions:
       contents: read
       packages: write
