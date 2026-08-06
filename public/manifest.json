@@ -1,0 +1,16 @@
+{
+  "short_name": "Living Dex",
+  "name": "Pokemon Living Dex Tracker",
+  "icons": [
+    {
+      "src": "/pokeball.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512 192x192 64x64 32x32"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0d1117",
+  "theme_color": "#161b22",
+  "display": "standalone",
+  "orientation": "portrait"
+}
