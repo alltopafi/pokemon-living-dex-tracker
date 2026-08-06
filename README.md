@@ -2,7 +2,7 @@
 
 A high-performance Progressive Web Application (PWA) for tracking a **Pokemon Living Dex** with custom origin-region challenge rules, featuring **Username Authentication** and real-time **PostgreSQL Database Syncing**.
 
-![Version](https://img.shields.io/badge/version-1.2.9-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.10-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![PWA](https://img.shields.io/badge/PWA-enabled-red.svg)
 ![Database](https://img.shields.io/badge/Database-PostgreSQL-336791.svg)
