@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -20,7 +18,6 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/alltopafi/pokemon-living-dex-tracker-backend:latest
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -40,7 +37,6 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ghcr.io/alltopafi/pokemon-living-dex-tracker:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -48,6 +44,7 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "3000:80"
     depends_on:
       - backend
 

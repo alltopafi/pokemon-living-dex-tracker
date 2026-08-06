@@ -48,6 +48,7 @@ export function App() {
     search: '',
     status: 'all',
     type: 'all',
+    game: 'all',
     sortBy: 'id-asc'
   });
 
@@ -75,10 +76,8 @@ export function App() {
     setIsSyncing(false);
 
     if (dbResult) {
-      // Merge DB state with local caughtMap or adopt DB state
       setCaughtMap(dbResult.caughtMap);
     } else {
-      // If DB endpoint unreachable, push current local map to DB when online
       performPostgresSync(cleanUser, caughtMap);
     }
   };
@@ -127,7 +126,6 @@ export function App() {
         }
       }
 
-      // Sync to PostgreSQL DB if logged in
       if (username) {
         performPostgresSync(username, next);
       }
@@ -181,12 +179,20 @@ export function App() {
       if (filters.status === 'caught' && !isCaught) return false;
       if (filters.status === 'uncaught' && isCaught) return false;
 
-      // 3. Type Filter
+      // 3. Game Caught In Filter
+      if (filters.game !== 'all') {
+        const status = caughtMap[p.id];
+        if (!status?.caught || status.caughtInGame !== filters.game) {
+          return false;
+        }
+      }
+
+      // 4. Type Filter
       if (filters.type !== 'all' && !p.types.includes(filters.type as any)) {
         return false;
       }
 
-      // 4. Search Filter
+      // 5. Search Filter
       if (filters.search.trim()) {
         const query = filters.search.trim().toLowerCase();
         const idMatch = `#${p.id}`.includes(query) || String(p.id).includes(query);
@@ -323,7 +329,7 @@ export function App() {
         <div className="empty-state">
           <SearchX size={48} />
           <h3>No Pokemon Found</h3>
-          <p>Try adjusting your search query, type, or caught status filter.</p>
+          <p>Try adjusting your search query, type, game, or caught status filter.</p>
         </div>
       ) : (
         <main className="dex-grid">

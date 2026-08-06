@@ -50,6 +50,7 @@ export interface FilterState {
   search: string;
   status: 'all' | 'caught' | 'uncaught';
   type: string; // 'all' or specific PokemonType
+  game: string; // 'all' or specific origin game name (e.g. 'Blue', 'HeartGold')
   sortBy: 'id-asc' | 'id-desc' | 'name-asc' | 'name-desc';
 }
 

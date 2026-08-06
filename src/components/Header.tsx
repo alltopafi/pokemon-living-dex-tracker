@@ -22,6 +22,22 @@ interface HeaderProps {
   isSyncing?: boolean;
 }
 
+const ALL_GAME_OPTIONS = [
+  'Red', 'Blue', 'Yellow',
+  'Gold', 'Silver', 'Crystal',
+  'Ruby', 'Sapphire', 'Emerald',
+  'FireRed', 'LeafGreen',
+  'Diamond', 'Pearl', 'Platinum',
+  'HeartGold', 'SoulSilver',
+  'Black', 'White', 'Black 2', 'White 2',
+  'X', 'Y', 'Omega Ruby', 'Alpha Sapphire',
+  'Sun', 'Moon', 'Ultra Sun', 'Ultra Moon',
+  "Let's Go Pikachu", "Let's Go Eevee",
+  'Sword', 'Shield', 'Legends: Arceus',
+  'Brilliant Diamond', 'Shining Pearl',
+  'Scarlet', 'Violet', 'The Teal Mask', 'The Indigo Disk'
+];
+
 export const Header: React.FC<HeaderProps> = ({
   totalCaught,
   totalDex,
@@ -192,6 +208,18 @@ export const Header: React.FC<HeaderProps> = ({
           <option value="all">All Status</option>
           <option value="caught">Caught Only</option>
           <option value="uncaught">Uncaught Only</option>
+        </select>
+
+        <select
+          className="select-control"
+          value={filterState.game}
+          onChange={(e) => onFilterChange({ game: e.target.value })}
+          title="Filter by Game Caught In"
+        >
+          <option value="all">All Origin Games</option>
+          {ALL_GAME_OPTIONS.map((game) => (
+            <option key={game} value={game}>{game}</option>
+          ))}
         </select>
 
         <select
