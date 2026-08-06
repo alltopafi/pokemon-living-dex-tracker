@@ -16,10 +16,12 @@ import {
   exportBackup, 
   importBackup 
 } from './utils/storage';
+import { buildHomeBoxes } from './utils/boxHelper';
 import { loginUser, syncCaughtState } from './services/apiService';
 import { Header } from './components/Header';
 import { RegionTabs } from './components/RegionTabs';
 import { PokemonCard } from './components/PokemonCard';
+import { PokemonHomeBox } from './components/PokemonHomeBox';
 import { PokemonDetailModal } from './components/PokemonDetailModal';
 import { StatsDashboardModal } from './components/StatsDashboardModal';
 import { BatchActionBar } from './components/BatchActionBar';
@@ -49,7 +51,8 @@ export function App() {
     status: 'all',
     type: 'all',
     game: 'all',
-    sortBy: 'id-asc'
+    sortBy: 'id-asc',
+    viewMode: 'grid'
   });
 
   // Save to LocalStorage whenever caughtMap changes
@@ -210,6 +213,11 @@ export function App() {
     });
   }, [activeRegion, filters, caughtMap]);
 
+  // Compute HOME Storage Boxes
+  const homeBoxes = useMemo(() => {
+    return buildHomeBoxes(filteredPokemon, caughtMap, activeRegion);
+  }, [filteredPokemon, caughtMap, activeRegion]);
+
   // Batch Selection Helpers
   const handleSelectAllVisible = () => {
     const allIds = new Set(filteredPokemon.map(p => p.id));
@@ -331,6 +339,22 @@ export function App() {
           <h3>No Pokemon Found</h3>
           <p>Try adjusting your search query, type, game, or caught status filter.</p>
         </div>
+      ) : filters.viewMode === 'home-box' ? (
+        <main className="home-boxes-wrapper">
+          {homeBoxes.map((box) => (
+            <PokemonHomeBox
+              key={box.boxNumber}
+              box={box}
+              caughtMap={caughtMap}
+              spriteStyle={spriteStyle}
+              onToggleCaught={handleToggleCaught}
+              onOpenDetail={(p) => setSelectedPokemon(p)}
+              isBatchMode={isBatchMode}
+              selectedBatchIds={selectedBatchIds}
+              onToggleBatchSelect={handleToggleBatchSelect}
+            />
+          ))}
+        </main>
       ) : (
         <main className="dex-grid">
           {filteredPokemon.map((pokemon) => (

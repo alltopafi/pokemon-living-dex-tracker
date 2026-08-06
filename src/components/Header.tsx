@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Search, Download, Upload, BarChart3, Settings, CheckCircle2, Layers, User, Database, RefreshCw } from 'lucide-react';
+import { Search, Download, Upload, BarChart3, Settings, CheckCircle2, Layers, User, Database, RefreshCw, LayoutGrid, Package } from 'lucide-react';
 import { FilterState, SpriteStyle } from '../types/pokemon';
 
 interface HeaderProps {
@@ -189,6 +189,26 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="filter-bar">
+        {/* View Mode Toggle */}
+        <div className="view-toggle-group" style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.8)', padding: '3px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+          <button
+            className={`view-toggle-btn ${filterState.viewMode === 'grid' ? 'active' : ''}`}
+            onClick={() => onFilterChange({ viewMode: 'grid' })}
+            title="Fluid Grid View"
+          >
+            <LayoutGrid size={15} />
+            <span>Grid</span>
+          </button>
+          <button
+            className={`view-toggle-btn ${filterState.viewMode === 'home-box' ? 'active' : ''}`}
+            onClick={() => onFilterChange({ viewMode: 'home-box' })}
+            title="Pokemon HOME Boxes View (6x5)"
+          >
+            <Package size={15} />
+            <span>HOME Boxes</span>
+          </button>
+        </div>
+
         <div className="search-input-wrapper">
           <Search size={16} />
           <input

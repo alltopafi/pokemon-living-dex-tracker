@@ -46,16 +46,29 @@ export type CaughtStateMap = Record<number, PokemonCaughtStatus>;
 
 export type SpriteStyle = 'official-artwork' | 'home' | 'pixel';
 
+export type ViewMode = 'grid' | 'home-box';
+
 export interface FilterState {
   search: string;
   status: 'all' | 'caught' | 'uncaught';
   type: string; // 'all' or specific PokemonType
   game: string; // 'all' or specific origin game name (e.g. 'Blue', 'HeartGold')
   sortBy: 'id-asc' | 'id-desc' | 'name-asc' | 'name-desc';
+  viewMode: ViewMode;
 }
 
 export interface DexStats {
   total: number;
   caught: number;
   percentage: number;
+}
+
+export interface HomeBoxData {
+  boxNumber: number;
+  boxTitle: string; // e.g. "K 1-30"
+  regionPrefix: string; // e.g. "K"
+  startId: number;
+  endId: number;
+  pokemonList: Pokemon[];
+  caughtCount: number;
 }
