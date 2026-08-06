@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { POKEMON_LIST, REGIONS } from './data/pokemonData';
 import { 
@@ -16,13 +16,17 @@ import {
   exportBackup, 
   importBackup 
 } from './utils/storage';
+import { loginUser, syncCaughtState } from './services/apiService';
 import { Header } from './components/Header';
 import { RegionTabs } from './components/RegionTabs';
 import { PokemonCard } from './components/PokemonCard';
 import { PokemonDetailModal } from './components/PokemonDetailModal';
 import { StatsDashboardModal } from './components/StatsDashboardModal';
 import { BatchActionBar } from './components/BatchActionBar';
+import { UserLoginModal } from './components/UserLoginModal';
 import { SearchX } from 'lucide-react';
+
+const USERNAME_STORAGE_KEY = 'pokemon_living_dex_username_v1';
 
 export function App() {
   const [caughtMap, setCaughtMap] = useState<CaughtStateMap>(loadCaughtState);
@@ -30,6 +34,11 @@ export function App() {
   const [spriteStyle, setSpriteStyle] = useState<SpriteStyle>(loadSpriteStyle);
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
+
+  // Username & DB Sync State
+  const [username, setUsername] = useState<string | null>(() => localStorage.getItem(USERNAME_STORAGE_KEY));
+  const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Batch Mode State
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
@@ -46,6 +55,51 @@ export function App() {
   useEffect(() => {
     saveCaughtState(caughtMap);
   }, [caughtMap]);
+
+  // Sync to PostgreSQL DB helper
+  const performPostgresSync = useCallback(async (user: string, stateMap: CaughtStateMap) => {
+    setIsSyncing(true);
+    await syncCaughtState(user, stateMap);
+    setIsSyncing(false);
+  }, []);
+
+  // Handle Username Login
+  const handleUserLogin = async (newUsername: string) => {
+    const cleanUser = newUsername.trim().toLowerCase();
+    setUsername(cleanUser);
+    localStorage.setItem(USERNAME_STORAGE_KEY, cleanUser);
+    setIsUserModalOpen(false);
+
+    setIsSyncing(true);
+    const dbResult = await loginUser(cleanUser);
+    setIsSyncing(false);
+
+    if (dbResult) {
+      // Merge DB state with local caughtMap or adopt DB state
+      setCaughtMap(dbResult.caughtMap);
+    } else {
+      // If DB endpoint unreachable, push current local map to DB when online
+      performPostgresSync(cleanUser, caughtMap);
+    }
+  };
+
+  // Handle User Logout
+  const handleUserLogout = () => {
+    setUsername(null);
+    localStorage.removeItem(USERNAME_STORAGE_KEY);
+    setIsUserModalOpen(false);
+  };
+
+  // Auto-login / fetch DB state on app load if username exists
+  useEffect(() => {
+    if (username) {
+      loginUser(username).then((dbResult) => {
+        if (dbResult && Object.keys(dbResult.caughtMap).length > 0) {
+          setCaughtMap(dbResult.caughtMap);
+        }
+      });
+    }
+  }, []);
 
   // Handle Sprite Style changes
   const handleSpriteStyleChange = (style: SpriteStyle) => {
@@ -73,6 +127,11 @@ export function App() {
         }
       }
 
+      // Sync to PostgreSQL DB if logged in
+      if (username) {
+        performPostgresSync(username, next);
+      }
+
       return next;
     });
   };
@@ -92,15 +151,21 @@ export function App() {
 
   // Update Notes / Game Caught In for single card
   const handleUpdateNotes = (id: number, notes: string, caughtInGame: string) => {
-    setCaughtMap((prev) => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        caught: prev[id]?.caught ?? true,
-        notes,
-        caughtInGame
+    setCaughtMap((prev) => {
+      const next = {
+        ...prev,
+        [id]: {
+          ...prev[id],
+          caught: prev[id]?.caught ?? true,
+          notes,
+          caughtInGame
+        }
+      };
+      if (username) {
+        performPostgresSync(username, next);
       }
-    }));
+      return next;
+    });
   };
 
   // Filter & Search Logic
@@ -173,6 +238,11 @@ export function App() {
           timestamp: newCaughtState ? (existing.timestamp || Date.now()) : undefined
         };
       });
+
+      if (username) {
+        performPostgresSync(username, next);
+      }
+
       return next;
     });
 
@@ -206,7 +276,10 @@ export function App() {
     const imported = importBackup(content);
     if (imported) {
       setCaughtMap(imported);
-      alert('Living Dex progress successfully imported!');
+      if (username) {
+        performPostgresSync(username, imported);
+      }
+      alert('Living Dex progress successfully imported & synced!');
     } else {
       alert('Failed to import backup file. Please check file format.');
     }
@@ -234,6 +307,9 @@ export function App() {
             setSelectedBatchIds(new Set());
           }
         }}
+        username={username}
+        onOpenUserModal={() => setIsUserModalOpen(true)}
+        isSyncing={isSyncing}
       />
 
       <RegionTabs
@@ -296,6 +372,15 @@ export function App() {
         <StatsDashboardModal
           caughtMap={caughtMap}
           onClose={() => setIsStatsOpen(false)}
+        />
+      )}
+
+      {isUserModalOpen && (
+        <UserLoginModal
+          currentUsername={username}
+          onLogin={handleUserLogin}
+          onLogout={handleUserLogout}
+          onClose={() => setIsUserModalOpen(false)}
         />
       )}
     </div>

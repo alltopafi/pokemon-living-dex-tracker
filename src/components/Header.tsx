@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Search, Download, Upload, BarChart3, Settings, CheckCircle2, Layers } from 'lucide-react';
+import { Search, Download, Upload, BarChart3, Settings, CheckCircle2, Layers, User, Database, RefreshCw } from 'lucide-react';
 import { FilterState, SpriteStyle } from '../types/pokemon';
 
 interface HeaderProps {
@@ -17,6 +17,9 @@ interface HeaderProps {
   onOpenStats: () => void;
   isBatchMode: boolean;
   onToggleBatchMode: () => void;
+  username: string | null;
+  onOpenUserModal: () => void;
+  isSyncing?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,7 +36,10 @@ export const Header: React.FC<HeaderProps> = ({
   onImport,
   onOpenStats,
   isBatchMode,
-  onToggleBatchMode
+  onToggleBatchMode,
+  username,
+  onOpenUserModal,
+  isSyncing = false
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +77,26 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-actions">
+          {/* Username / DB Sync Badge */}
+          <button 
+            className="action-btn"
+            onClick={onOpenUserModal}
+            title={username ? `Logged in as ${username} (Click to manage)` : 'Set Username to sync to PostgreSQL'}
+            style={{
+              borderColor: username ? 'rgba(56, 189, 248, 0.4)' : undefined,
+              background: username ? 'rgba(56, 189, 248, 0.15)' : undefined
+            }}
+          >
+            {isSyncing ? (
+              <RefreshCw size={16} className="animate-spin" style={{ color: 'var(--accent-blue)', animation: 'spin 1s linear infinite' }} />
+            ) : username ? (
+              <Database size={16} color="var(--accent-blue)" />
+            ) : (
+              <User size={16} />
+            )}
+            <span>{username ? `@${username}` : 'Set Username'}</span>
+          </button>
+
           <button 
             className={`action-btn ${isBatchMode ? 'active-batch-btn' : ''}`} 
             onClick={onToggleBatchMode} 

@@ -1,10 +1,11 @@
-# ⚡ Pokemon Living Dex Tracker (PWA)
+# ⚡ Pokemon Living Dex Tracker (PWA & PostgreSQL)
 
-A high-performance Progressive Web Application (PWA) for tracking a **Pokemon Living Dex** with custom origin-region challenge rules.
+A high-performance Progressive Web Application (PWA) for tracking a **Pokemon Living Dex** with custom origin-region challenge rules, featuring **Username Authentication** and real-time **PostgreSQL Database Syncing**.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![PWA](https://img.shields.io/badge/PWA-enabled-red.svg)
+![Database](https://img.shields.io/badge/Database-PostgreSQL-336791.svg)
 
 ---
 
@@ -17,72 +18,46 @@ A high-performance Progressive Web Application (PWA) for tracking a **Pokemon Li
 
 ## ✨ Features
 
-- **🎨 Greyscale vs. Vibrant Sprites**: Uncaught Pokemon appear greyed out; marking a Pokemon as caught illuminates it in full vibrant color with a glowing border.
+- **👤 Username Authentication (No Password Required)**: Simply enter a trainer username (e.g., `@ash_ketchum`) to load or create a profile.
+- **🐘 PostgreSQL Database Sync**: Automatically syncs caught statuses, notes, origin games, and timestamps to a PostgreSQL backend.
+- **⚡ Batch Edit & Bulk Selection**: Select multiple Pokemon at once to mark them as caught/uncaught or set origin games (e.g. *Pokemon Blue*) in bulk.
 - **🗺️ Interactive Game & Location Finder**: Click any game title in a Pokemon's details modal to view exact routes, encounter methods (*Tall Grass, Surfing, Fishing*), level ranges, and percentage rates, or evolution/gift requirements.
-- **📊 Region Tabs & Live Metrics**: View progress meters and percentages for the total National Dex and each of the 9 region tabs (*Kanto, Johto, Hoenn, Sinnoh, Unova, Kalos, Alola, Galar, Paldea*).
-- **🔎 Instant Search & Filtering**: Search by Pokemon name or # ID, filter by status (*Caught / Uncaught*), or filter by elemental type (*Fire, Water, Grass, Dragon, etc.*).
+- **🎨 Greyscale vs. Vibrant Sprites**: Uncaught Pokemon appear greyed out; caught Pokemon glow in full vibrant color.
 - **🖼️ Sprite Style Switcher**: Toggle between **Official Artwork**, **Pokemon HOME 3D Models**, and **Classic Pixel Sprites**.
-- **💾 Offline PWA & Data Safety**: Installable web app with Service Worker offline caching, `localStorage` persistence, and 1-click **Export / Import JSON Backup**.
-- **🐳 Docker & GitHub CI**: Includes multi-stage Nginx Dockerfile and GitHub Actions workflow for automated container deployment to GHCR.
+- **💾 Hybrid Offline PWA & JSON Backup**: Works offline with `localStorage` caching, retaining 1-click **Export / Import JSON Backup** features. Importing a JSON backup auto-populates the PostgreSQL database.
+- **🐳 1-Command Docker Compose**: Complete stack deployment (`PostgreSQL + Express API + React Web PWA`).
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 Quick Start with Docker Compose
 
-- **Frontend**: React 18, TypeScript, Vite
-- **Icons**: Lucide React
-- **Styling**: Modern Vanilla CSS (Glassmorphism design system, CSS Variables, Dark Mode)
-- **Containerization**: Docker (Nginx Alpine runner)
-- **CI/CD**: GitHub Actions (`docker-ci.yml`)
+Run the entire application stack (PostgreSQL + API Server + Web App) with one command:
 
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- npm or yarn
-
-### Local Development
 ```bash
-# Clone the repository
-git clone https://github.com/alltopafi/pokemon-living-dex-tracker.git
-cd pokemon-living-dex-tracker
+docker compose up --build -d
+```
+- **Web App**: [http://localhost](http://localhost)
+- **Express API**: [http://localhost:5000](http://localhost:5000)
+- **PostgreSQL**: `localhost:5432`
 
-# Install dependencies
+---
+
+## 🛠️ Local Development
+
+### 1. Start Express Backend
+```bash
+cd server
 npm install
+npm run dev
+```
 
-# Run dev server
+### 2. Start Vite Frontend
+```bash
+# In the project root
+npm install
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Build for Production
-```bash
-npm run build
-```
-
----
-
-## 🐳 Docker Deployment
-
-### Run with Docker locally:
-```bash
-# Build Docker image
-docker build -t pokemon-living-dex-tracker:1.0.0 .
-
-# Run container
-docker run -d -p 8080:80 pokemon-living-dex-tracker:1.0.0
-```
-Open [http://localhost:8080](http://localhost:8080) in your browser.
-
----
-
-## 💾 Data Backup & Restore
-
-Your caught progress is automatically saved to your browser's `localStorage`. You can also create offsite backups at any time:
-1. Click **Export** in the top navigation bar to download a `.json` backup file.
-2. Click **Import** on any device to restore your saved Living Dex progress.
 
 ---
 
