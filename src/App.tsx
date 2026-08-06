@@ -21,6 +21,7 @@ import { RegionTabs } from './components/RegionTabs';
 import { PokemonCard } from './components/PokemonCard';
 import { PokemonDetailModal } from './components/PokemonDetailModal';
 import { StatsDashboardModal } from './components/StatsDashboardModal';
+import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
 
 export function App() {
@@ -29,6 +30,10 @@ export function App() {
   const [spriteStyle, setSpriteStyle] = useState<SpriteStyle>(loadSpriteStyle);
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
+
+  // Batch Mode State
+  const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
+  const [selectedBatchIds, setSelectedBatchIds] = useState<Set<number>>(new Set());
 
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -48,7 +53,7 @@ export function App() {
     saveSpriteStyle(style);
   };
 
-  // Toggle caught status
+  // Toggle caught status for single card
   const handleToggleCaught = (id: number) => {
     setCaughtMap((prev) => {
       const next = { ...prev };
@@ -61,7 +66,6 @@ export function App() {
         timestamp: newStatus ? Date.now() : undefined
       };
 
-      // Trigger celebratory confetti if completing a region or 100% Dex!
       if (newStatus) {
         const totalCaughtCount = Object.values(next).filter(v => v.caught).length;
         if (totalCaughtCount === 1025) {
@@ -73,7 +77,20 @@ export function App() {
     });
   };
 
-  // Update Notes / Game Caught In
+  // Toggle selection for single card in batch mode
+  const handleToggleBatchSelect = (id: number) => {
+    setSelectedBatchIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Update Notes / Game Caught In for single card
   const handleUpdateNotes = (id: number, notes: string, caughtInGame: string) => {
     setCaughtMap((prev) => ({
       ...prev,
@@ -122,6 +139,47 @@ export function App() {
     });
   }, [activeRegion, filters, caughtMap]);
 
+  // Batch Selection Helpers
+  const handleSelectAllVisible = () => {
+    const allIds = new Set(filteredPokemon.map(p => p.id));
+    setSelectedBatchIds(allIds);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedBatchIds(new Set());
+  };
+
+  // Apply Batch Updates (Status, Game, Notes)
+  const handleApplyBatchUpdate = (options: {
+    status?: 'caught' | 'uncaught';
+    caughtInGame?: string;
+    notes?: string;
+  }) => {
+    if (selectedBatchIds.size === 0) return;
+
+    setCaughtMap((prev) => {
+      const next = { ...prev };
+      selectedBatchIds.forEach((id) => {
+        const existing = next[id] || { caught: false };
+        const newCaughtState = options.status !== undefined 
+          ? (options.status === 'caught') 
+          : existing.caught;
+
+        next[id] = {
+          ...existing,
+          caught: newCaughtState,
+          caughtInGame: options.caughtInGame !== undefined ? options.caughtInGame : existing.caughtInGame,
+          notes: options.notes !== undefined ? options.notes : existing.notes,
+          timestamp: newCaughtState ? (existing.timestamp || Date.now()) : undefined
+        };
+      });
+      return next;
+    });
+
+    setSelectedBatchIds(new Set());
+    setIsBatchMode(false);
+  };
+
   // Active Region Stats
   const activeRegionInfo = REGIONS.find(r => r.id === activeRegion) || REGIONS[0];
   const regionCaughtCount = useMemo(() => {
@@ -155,7 +213,7 @@ export function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ paddingBottom: isBatchMode ? '140px' : '3rem' }}>
       <Header
         totalCaught={totalCaughtCount}
         totalDex={1025}
@@ -169,6 +227,13 @@ export function App() {
         onExport={handleExport}
         onImport={handleImport}
         onOpenStats={() => setIsStatsOpen(true)}
+        isBatchMode={isBatchMode}
+        onToggleBatchMode={() => {
+          setIsBatchMode(!isBatchMode);
+          if (isBatchMode) {
+            setSelectedBatchIds(new Set());
+          }
+        }}
       />
 
       <RegionTabs
@@ -194,9 +259,26 @@ export function App() {
               spriteStyle={spriteStyle}
               onToggleCaught={handleToggleCaught}
               onOpenDetail={(p) => setSelectedPokemon(p)}
+              isBatchMode={isBatchMode}
+              isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
+              onToggleBatchSelect={handleToggleBatchSelect}
             />
           ))}
         </main>
+      )}
+
+      {isBatchMode && (
+        <BatchActionBar
+          selectedCount={selectedBatchIds.size}
+          totalVisibleCount={filteredPokemon.length}
+          onSelectAll={handleSelectAllVisible}
+          onDeselectAll={handleDeselectAll}
+          onApplyBatchUpdate={handleApplyBatchUpdate}
+          onExitBatchMode={() => {
+            setIsBatchMode(false);
+            setSelectedBatchIds(new Set());
+          }}
+        />
       )}
 
       {selectedPokemon && (

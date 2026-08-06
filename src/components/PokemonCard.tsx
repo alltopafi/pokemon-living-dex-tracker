@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Info } from 'lucide-react';
+import { Check, Info, CheckSquare, Square } from 'lucide-react';
 import { Pokemon, SpriteStyle } from '../types/pokemon';
 import { getSpriteUrl } from '../utils/storage';
 
@@ -9,6 +9,9 @@ interface PokemonCardProps {
   spriteStyle: SpriteStyle;
   onToggleCaught: (id: number) => void;
   onOpenDetail: (pokemon: Pokemon) => void;
+  isBatchMode?: boolean;
+  isSelectedInBatch?: boolean;
+  onToggleBatchSelect?: (id: number) => void;
 }
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({
@@ -16,30 +19,49 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   isCaught,
   spriteStyle,
   onToggleCaught,
-  onOpenDetail
+  onOpenDetail,
+  isBatchMode = false,
+  isSelectedInBatch = false,
+  onToggleBatchSelect
 }) => {
   const formattedId = `#${String(pokemon.id).padStart(4, '0')}`;
   const spriteUrl = getSpriteUrl(pokemon.id, spriteStyle);
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // If clicking directly on info button, don't toggle caught
+    // If clicking directly on info button, don't toggle
     const target = e.target as HTMLElement;
     if (target.closest('.info-btn')) {
       return;
     }
-    onToggleCaught(pokemon.id);
+
+    if (isBatchMode && onToggleBatchSelect) {
+      onToggleBatchSelect(pokemon.id);
+    } else {
+      onToggleCaught(pokemon.id);
+    }
   };
 
   return (
     <div 
-      className={`pokemon-card ${isCaught ? 'caught' : ''}`}
+      className={`pokemon-card ${isCaught ? 'caught' : ''} ${isBatchMode ? 'batch-mode' : ''} ${isSelectedInBatch ? 'batch-selected' : ''}`}
       onClick={handleCardClick}
-      title={`${pokemon.name} - ${isCaught ? 'Caught' : 'Uncaught'} (Click to toggle)`}
+      title={`${pokemon.name} - ${isCaught ? 'Caught' : 'Uncaught'}`}
     >
       <div className="dex-number">{formattedId}</div>
-      <div className="caught-badge">
-        {isCaught && <Check size={14} strokeWidth={3} />}
-      </div>
+
+      {isBatchMode ? (
+        <div className={`batch-checkbox ${isSelectedInBatch ? 'checked' : ''}`}>
+          {isSelectedInBatch ? (
+            <CheckSquare size={18} color="var(--accent-purple)" />
+          ) : (
+            <Square size={18} color="var(--text-muted)" />
+          )}
+        </div>
+      ) : (
+        <div className="caught-badge">
+          {isCaught && <Check size={14} strokeWidth={3} />}
+        </div>
+      )}
 
       <div className="sprite-container">
         <img 
@@ -48,7 +70,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
           className="pokemon-sprite"
           loading="lazy"
           onError={(e) => {
-            // Fallback if high res artwork isn't found
             (e.target as HTMLImageElement).src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
           }}
         />
@@ -74,7 +95,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
             e.stopPropagation();
             onOpenDetail(pokemon);
           }}
-          title="View Origin Region Rules & Notes"
+          title="View Origin Region Rules & Locations"
           style={{
             background: 'none',
             border: 'none',

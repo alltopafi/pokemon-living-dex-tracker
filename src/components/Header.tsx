@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Search, Download, Upload, BarChart3, Settings, CheckCircle2 } from 'lucide-react';
+import { Search, Download, Upload, BarChart3, Settings, CheckCircle2, Layers } from 'lucide-react';
 import { FilterState, SpriteStyle } from '../types/pokemon';
 
 interface HeaderProps {
@@ -15,6 +15,8 @@ interface HeaderProps {
   onExport: () => void;
   onImport: (content: string) => void;
   onOpenStats: () => void;
+  isBatchMode: boolean;
+  onToggleBatchMode: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,7 +31,9 @@ export const Header: React.FC<HeaderProps> = ({
   onSpriteStyleChange,
   onExport,
   onImport,
-  onOpenStats
+  onOpenStats,
+  isBatchMode,
+  onToggleBatchMode
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,6 +71,20 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-actions">
+          <button 
+            className={`action-btn ${isBatchMode ? 'active-batch-btn' : ''}`} 
+            onClick={onToggleBatchMode} 
+            title="Toggle Batch Select & Bulk Edit Mode"
+            style={{
+              borderColor: isBatchMode ? 'var(--accent-purple)' : undefined,
+              background: isBatchMode ? 'rgba(129, 140, 248, 0.2)' : undefined,
+              color: isBatchMode ? '#ffffff' : undefined
+            }}
+          >
+            <Layers size={16} color={isBatchMode ? 'var(--accent-purple)' : undefined} />
+            <span>{isBatchMode ? 'Exit Batch Mode' : 'Batch Edit'}</span>
+          </button>
+
           <button className="action-btn" onClick={onOpenStats} title="View Detailed Dex Breakdown">
             <BarChart3 size={16} />
             <span>Stats</span>
