@@ -20,6 +20,7 @@ services:
       retries: 5
 
   backend:
+    image: ghcr.io/alltopafi/pokemon-living-dex-tracker-backend:latest
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -39,6 +40,7 @@ services:
         condition: service_healthy
 
   frontend:
+    image: ghcr.io/alltopafi/pokemon-living-dex-tracker:latest
     build:
       context: .
       dockerfile: Dockerfile
