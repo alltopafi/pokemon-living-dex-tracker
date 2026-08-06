@@ -13,7 +13,7 @@ env:
 jobs:
   build-frontend:
     name: Build & Push Frontend Image
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -61,7 +61,7 @@ jobs:
 
   build-backend:
     name: Build & Push Backend API Image
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
