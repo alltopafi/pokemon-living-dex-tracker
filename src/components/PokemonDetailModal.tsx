@@ -132,30 +132,36 @@ export const PokemonDetailModal: React.FC<DetailModalProps> = ({
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0.75rem' }}>
                   Fetching location & encounter data...
                 </div>
-              ) : obtainInfo?.locations && obtainInfo.locations.length > 0 ? (
-                <div className="location-list">
-                  {obtainInfo.locations.map((loc, idx) => (
-                    <div key={idx} className="location-item">
-                      <div className="location-name">
-                        <MapPin size={12} style={{ display: 'inline', marginRight: '4px', color: 'var(--accent-blue)' }} />
-                        {loc.locationName}
-                      </div>
-                      <div className="location-meta">
-                        <span className="method-tag">{loc.method}</span>
-                        {loc.minLevel > 0 && (
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            Lv {loc.minLevel}{loc.maxLevel > loc.minLevel ? `-${loc.maxLevel}` : ''}
-                          </span>
-                        )}
-                        <span className="chance-tag">{loc.chance}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               ) : (
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', background: 'rgba(30, 41, 59, 0.6)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Sparkles size={16} color="var(--accent-gold)" style={{ flexShrink: 0 }} />
-                  <span>{obtainInfo?.evolutionOrSpecial || `Obtainable in ${selectedGame} via evolution, gift, or NPC trade.`}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {obtainInfo?.locations && obtainInfo.locations.length > 0 && (
+                    <div className="location-list">
+                      {obtainInfo.locations.map((loc, idx) => (
+                        <div key={idx} className="location-item">
+                          <div className="location-name">
+                            <MapPin size={12} style={{ display: 'inline', marginRight: '4px', color: 'var(--accent-blue)' }} />
+                            {loc.locationName}
+                          </div>
+                          <div className="location-meta">
+                            <span className="method-tag">{loc.method}</span>
+                            {loc.minLevel > 0 && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                Lv {loc.minLevel}{loc.maxLevel > loc.minLevel ? `-${loc.maxLevel}` : ''}
+                              </span>
+                            )}
+                            <span className="chance-tag">{loc.chance}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {obtainInfo?.evolutionOrSpecial && (
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', background: 'rgba(30, 41, 59, 0.6)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Sparkles size={16} color="var(--accent-gold)" style={{ flexShrink: 0 }} />
+                      <span>{obtainInfo.evolutionOrSpecial}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

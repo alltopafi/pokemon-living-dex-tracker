@@ -65,7 +65,7 @@ export async function getPokemonObtainDetails(
   pokemonName: string,
   gameName: string
 ): Promise<ObtainInfo> {
-  const cacheKey = `${pokemonId}_${gameName}`;
+  const cacheKey = `${pokemonId}_${gameName}_v2`; // Updated cache key to prevent stale memory cache
   if (encounterCache[cacheKey]) {
     return encounterCache[cacheKey];
   }
@@ -73,28 +73,28 @@ export async function getPokemonObtainDetails(
   const versionKeys = GAME_TO_VERSION_MAP[gameName] || [gameName.toLowerCase().replace(/[^a-z0-9]/g, '-')];
 
   try {
-    // 1. Fetch Encounters
+    // 1. Fetch Encounters from PokeAPI
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}/encounters`);
-    if (!res.ok) throw new Error('Encounter fetch failed');
-    const data = await res.json();
+    let matchedLocations: LocationDetail[] = [];
 
-    const matchedLocations: LocationDetail[] = [];
-
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        const areaName = formatLocationName(item.location_area?.name || '');
-        
-        for (const verDetail of item.version_details || []) {
-          const verName = verDetail.version?.name;
-          if (versionKeys.includes(verName)) {
-            for (const encDetails of verDetail.encounter_details || []) {
-              matchedLocations.push({
-                locationName: areaName,
-                method: formatMethod(encDetails.method?.name),
-                minLevel: encDetails.min_level,
-                maxLevel: encDetails.max_level,
-                chance: encDetails.chance
-              });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        for (const item of data) {
+          const areaName = formatLocationName(item.location_area?.name || '');
+          
+          for (const verDetail of item.version_details || []) {
+            const verName = verDetail.version?.name;
+            if (versionKeys.includes(verName)) {
+              for (const encDetails of verDetail.encounter_details || []) {
+                matchedLocations.push({
+                  locationName: areaName,
+                  method: formatMethod(encDetails.method?.name),
+                  minLevel: encDetails.min_level,
+                  maxLevel: encDetails.max_level,
+                  chance: encDetails.chance
+                });
+              }
             }
           }
         }
@@ -104,11 +104,17 @@ export async function getPokemonObtainDetails(
     // Deduplicate locations with same area & method
     const uniqueLocations = deduplicateLocations(matchedLocations);
 
+    // 2. Fetch evolution or special method info
+    let evolutionText = await getSpecialOrEvolutionObtainMethod(pokemonId, pokemonName, gameName);
     let evolutionOrSpecial: string | undefined = undefined;
 
-    // 2. If no wild encounters found, fetch species / evolution data
-    if (uniqueLocations.length === 0) {
-      evolutionOrSpecial = await getSpecialOrEvolutionObtainMethod(pokemonId, pokemonName, gameName);
+    if (evolutionText) {
+      const isEvo = evolutionText.startsWith('Evolve') || evolutionText.startsWith('Trade');
+      if (isEvo) {
+        evolutionOrSpecial = `Evolution Method: ${evolutionText}`;
+      } else {
+        evolutionOrSpecial = evolutionText;
+      }
     }
 
     const result: ObtainInfo = {
@@ -126,7 +132,7 @@ export async function getPokemonObtainDetails(
     const result: ObtainInfo = {
       gameName,
       locations: [],
-      evolutionOrSpecial: fallbackText
+      evolutionOrSpecial: fallbackText ? `Evolution Method: ${fallbackText}` : `Obtainable in ${gameName} via wild encounters, evolution, or NPC trade.`
     };
     encounterCache[cacheKey] = result;
     return result;
@@ -181,7 +187,7 @@ async function getSpecialOrEvolutionObtainMethod(
   pokemonId: number,
   pokemonName: string,
   gameName: string
-): Promise<string> {
+): Promise<string | undefined> {
   // Check Starters / Mythicals / Specials
   if (pokemonId === 1 || pokemonId === 4 || pokemonId === 7) {
     return `Starter Pokemon received from Professor Oak in Pallet Town (${gameName}).`;
@@ -232,7 +238,7 @@ async function getSpecialOrEvolutionObtainMethod(
     // Ignore error and return general obtain text
   }
 
-  return `Obtainable in ${gameName} via evolution, NPC gift/trade, or special story encounter.`;
+  return undefined;
 }
 
 function parseEvolutionDetails(chainNode: any, targetName: string): string | null {
