@@ -514,6 +514,19 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
 }
 
+.origin-tag.home-box-tag {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
 /* Detail Modal */
 .modal-overlay {
   position: fixed;

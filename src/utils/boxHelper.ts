@@ -14,13 +14,46 @@ export const REGION_PREFIXES: Record<RegionId, string> = {
   paldea: 'P'
 };
 
+/**
+ * Calculates the exact absolute Pokemon HOME Box Number and Slot Number (1..30)
+ * for any given Pokemon.
+ */
+export function getPokemonBoxLocation(pokemon: Pokemon): {
+  prefix: string;
+  boxNumber: number;
+  slotNumber: number;
+  locationString: string;
+} {
+  const region = REGIONS.find(r => r.id === pokemon.region) || REGIONS[1]; // fallback Kanto
+  const prefix = REGION_PREFIXES[pokemon.region] || 'K';
+
+  // Calculate preceding boxes before this region in National Dex
+  let precedingBoxes = 0;
+  for (const r of REGIONS) {
+    if (r.id === 'all') continue;
+    if (r.id === pokemon.region) break;
+    precedingBoxes += Math.ceil(r.total / 30);
+  }
+
+  const offsetInRegion = pokemon.id - region.startId;
+  const boxInRegion = Math.floor(offsetInRegion / 30);
+  const globalBoxNumber = precedingBoxes + boxInRegion + 1;
+  const slotNumber = (offsetInRegion % 30) + 1;
+
+  return {
+    prefix,
+    boxNumber: globalBoxNumber,
+    slotNumber,
+    locationString: `${prefix} Box ${globalBoxNumber} Slot ${slotNumber}`
+  };
+}
+
 export function buildHomeBoxes(
   pokemonList: Pokemon[],
   caughtMap: CaughtStateMap,
   activeRegion: RegionId
 ): HomeBoxData[] {
   const boxes: HomeBoxData[] = [];
-  let globalBoxNumber = 1;
 
   // Determine which regions to process
   const targetRegions = activeRegion === 'all' 
@@ -30,11 +63,22 @@ export function buildHomeBoxes(
   const pokemonById = new Map<number, Pokemon>();
   pokemonList.forEach(p => pokemonById.set(p.id, p));
 
+  // Preceding boxes count for active region start
+  let startGlobalBox = 1;
+  if (activeRegion !== 'all') {
+    for (const r of REGIONS) {
+      if (r.id === 'all') continue;
+      if (r.id === activeRegion) break;
+      startGlobalBox += Math.ceil(r.total / 30);
+    }
+  }
+
+  let currentGlobalBox = startGlobalBox;
+
   for (const region of targetRegions) {
     const prefix = REGION_PREFIXES[region.id] || 'K';
     const regionPokemon: Pokemon[] = [];
 
-    // Collect all Pokemon matching this region in ID order
     for (let id = region.startId; id <= region.endId; id++) {
       if (pokemonById.has(id)) {
         regionPokemon.push(pokemonById.get(id)!);
@@ -43,7 +87,6 @@ export function buildHomeBoxes(
 
     if (regionPokemon.length === 0) continue;
 
-    // Chunk into boxes of 30
     const BOX_SIZE = 30;
     for (let i = 0; i < regionPokemon.length; i += BOX_SIZE) {
       const chunk = regionPokemon.slice(i, i + BOX_SIZE);
@@ -54,7 +97,7 @@ export function buildHomeBoxes(
       const caughtCount = chunk.filter(p => !!caughtMap[p.id]?.caught).length;
 
       boxes.push({
-        boxNumber: globalBoxNumber++,
+        boxNumber: currentGlobalBox++,
         boxTitle,
         regionPrefix: prefix,
         startId,
