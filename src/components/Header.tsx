@@ -237,6 +237,7 @@ export const Header: React.FC<HeaderProps> = ({
           title="Filter by Game Caught In"
         >
           <option value="all">All Origin Games</option>
+          <option value="none">Unassigned (No Game Selected)</option>
           {ALL_GAME_OPTIONS.map((game) => (
             <option key={game} value={game}>{game}</option>
           ))}

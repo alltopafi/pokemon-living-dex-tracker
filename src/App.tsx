@@ -183,7 +183,12 @@ export function App() {
       if (filters.status === 'uncaught' && isCaught) return false;
 
       // 3. Game Caught In Filter
-      if (filters.game !== 'all') {
+      if (filters.game === 'none') {
+        const status = caughtMap[p.id];
+        if (status?.caughtInGame && status.caughtInGame.trim() !== '') {
+          return false;
+        }
+      } else if (filters.game !== 'all') {
         const status = caughtMap[p.id];
         if (!status?.caught || status.caughtInGame !== filters.game) {
           return false;
