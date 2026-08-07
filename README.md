@@ -1,4 +1,4 @@
-# ⚡ Pokemon Living Dex Tracker (PWA & PostgreSQL)
+I'm# ⚡ Pokemon Living Dex Tracker (PWA & PostgreSQL)
 
 A high-performance Progressive Web Application (PWA) for tracking a **Pokemon Living Dex** with custom origin-region challenge rules, featuring **Username Authentication** and real-time **PostgreSQL Database Syncing**.
 
@@ -64,3 +64,5 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## 📄 License
 
 Distributed under the MIT License.
+
+
