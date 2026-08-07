@@ -12,6 +12,7 @@ interface PokemonCardProps {
   isBatchMode?: boolean;
   isSelectedInBatch?: boolean;
   onToggleBatchSelect?: (id: number) => void;
+  boxLocation?: string; // Optional: e.g. "K Box 1 Slot 1" when in HOME Box view mode
 }
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({
@@ -22,7 +23,8 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   onOpenDetail,
   isBatchMode = false,
   isSelectedInBatch = false,
-  onToggleBatchSelect
+  onToggleBatchSelect,
+  boxLocation
 }) => {
   const formattedId = `#${String(pokemon.id).padStart(4, '0')}`;
   const spriteUrl = getSpriteUrl(pokemon.id, spriteStyle);
@@ -45,7 +47,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
     <div 
       className={`pokemon-card ${isCaught ? 'caught' : ''} ${isBatchMode ? 'batch-mode' : ''} ${isSelectedInBatch ? 'batch-selected' : ''}`}
       onClick={handleCardClick}
-      title={`${pokemon.name} - ${isCaught ? 'Caught' : 'Uncaught'}`}
+      title={`${pokemon.name} - ${isCaught ? 'Caught' : 'Uncaught'}${boxLocation ? ` (${boxLocation})` : ''}`}
     >
       <div className="dex-number">{formattedId}</div>
 
@@ -86,8 +88,8 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '0.4rem' }}>
-        <span className="origin-tag">
-          {pokemon.region.toUpperCase()}
+        <span className={`origin-tag ${boxLocation ? 'home-box-tag' : ''}`}>
+          {boxLocation ? boxLocation : pokemon.region.toUpperCase()}
         </span>
         <button 
           className="info-btn"

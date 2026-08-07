@@ -2,6 +2,7 @@ import React from 'react';
 import { Package, CheckCircle2 } from 'lucide-react';
 import { HomeBoxData, Pokemon, SpriteStyle, CaughtStateMap } from '../types/pokemon';
 import { PokemonCard } from './PokemonCard';
+import { getPokemonBoxLocation } from '../utils/boxHelper';
 
 interface PokemonHomeBoxProps {
   box: HomeBoxData;
@@ -43,19 +44,24 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
       </div>
 
       <div className="home-box-grid">
-        {box.pokemonList.map((pokemon) => (
-          <PokemonCard
-            key={pokemon.id}
-            pokemon={pokemon}
-            isCaught={!!caughtMap[pokemon.id]?.caught}
-            spriteStyle={spriteStyle}
-            onToggleCaught={onToggleCaught}
-            onOpenDetail={onOpenDetail}
-            isBatchMode={isBatchMode}
-            isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
-            onToggleBatchSelect={onToggleBatchSelect}
-          />
-        ))}
+        {box.pokemonList.map((pokemon) => {
+          const loc = getPokemonBoxLocation(pokemon);
+
+          return (
+            <PokemonCard
+              key={pokemon.id}
+              pokemon={pokemon}
+              isCaught={!!caughtMap[pokemon.id]?.caught}
+              spriteStyle={spriteStyle}
+              onToggleCaught={onToggleCaught}
+              onOpenDetail={onOpenDetail}
+              isBatchMode={isBatchMode}
+              isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
+              onToggleBatchSelect={onToggleBatchSelect}
+              boxLocation={loc.locationString}
+            />
+          );
+        })}
       </div>
     </div>
   );
