@@ -15,10 +15,15 @@ export const REGION_PREFIXES: Record<RegionId, string> = {
 };
 
 /**
- * Calculates the exact absolute Pokemon HOME Box Number and Slot Number (1..30)
+ * Calculates the exact Pokemon HOME Box Number and Slot Number (1..30)
  * for any given Pokemon.
+ * If activeRegion === 'all' (National Dex), boxNumber is relative to full National Dex.
+ * If activeRegion is a specific region (e.g. 'johto'), boxNumber starts at 1 for that region.
  */
-export function getPokemonBoxLocation(pokemon: Pokemon): {
+export function getPokemonBoxLocation(
+  pokemon: Pokemon,
+  activeRegion: RegionId = 'all'
+): {
   prefix: string;
   boxNumber: number;
   slotNumber: number;
@@ -27,24 +32,25 @@ export function getPokemonBoxLocation(pokemon: Pokemon): {
   const region = REGIONS.find(r => r.id === pokemon.region) || REGIONS[1]; // fallback Kanto
   const prefix = REGION_PREFIXES[pokemon.region] || 'K';
 
-  // Calculate preceding boxes before this region in National Dex
   let precedingBoxes = 0;
-  for (const r of REGIONS) {
-    if (r.id === 'all') continue;
-    if (r.id === pokemon.region) break;
-    precedingBoxes += Math.ceil(r.total / 30);
+  if (activeRegion === 'all') {
+    for (const r of REGIONS) {
+      if (r.id === 'all') continue;
+      if (r.id === pokemon.region) break;
+      precedingBoxes += Math.ceil(r.total / 30);
+    }
   }
 
   const offsetInRegion = pokemon.id - region.startId;
   const boxInRegion = Math.floor(offsetInRegion / 30);
-  const globalBoxNumber = precedingBoxes + boxInRegion + 1;
+  const calculatedBoxNumber = precedingBoxes + boxInRegion + 1;
   const slotNumber = (offsetInRegion % 30) + 1;
 
   return {
     prefix,
-    boxNumber: globalBoxNumber,
+    boxNumber: calculatedBoxNumber,
     slotNumber,
-    locationString: `${prefix} Box ${globalBoxNumber} Slot ${slotNumber}`
+    locationString: `${prefix} Box ${calculatedBoxNumber} Slot ${slotNumber}`
   };
 }
 
@@ -66,11 +72,7 @@ export function buildHomeBoxes(
   // Preceding boxes count for active region start
   let startGlobalBox = 1;
   if (activeRegion !== 'all') {
-    for (const r of REGIONS) {
-      if (r.id === 'all') continue;
-      if (r.id === activeRegion) break;
-      startGlobalBox += Math.ceil(r.total / 30);
-    }
+    startGlobalBox = 1; // When a single region tab is selected, box numbers start at Box 1 for that region
   }
 
   let currentGlobalBox = startGlobalBox;

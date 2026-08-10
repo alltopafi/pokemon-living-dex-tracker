@@ -1,6 +1,6 @@
 import React from 'react';
 import { Package, CheckCircle2 } from 'lucide-react';
-import { HomeBoxData, Pokemon, SpriteStyle, CaughtStateMap } from '../types/pokemon';
+import { HomeBoxData, Pokemon, SpriteStyle, CaughtStateMap, RegionId } from '../types/pokemon';
 import { PokemonCard } from './PokemonCard';
 import { getPokemonBoxLocation } from '../utils/boxHelper';
 
@@ -13,6 +13,7 @@ interface PokemonHomeBoxProps {
   isBatchMode: boolean;
   selectedBatchIds: Set<number>;
   onToggleBatchSelect: (id: number) => void;
+  activeRegion: RegionId;
 }
 
 export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
@@ -23,7 +24,8 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
   onOpenDetail,
   isBatchMode,
   selectedBatchIds,
-  onToggleBatchSelect
+  onToggleBatchSelect,
+  activeRegion
 }) => {
   const isCompleted = box.caughtCount === box.pokemonList.length;
   const percentage = Math.round((box.caughtCount / box.pokemonList.length) * 100);
@@ -45,7 +47,7 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
 
       <div className="home-box-grid">
         {box.pokemonList.map((pokemon) => {
-          const loc = getPokemonBoxLocation(pokemon);
+          const loc = getPokemonBoxLocation(pokemon, activeRegion);
 
           return (
             <PokemonCard

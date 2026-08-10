@@ -357,6 +357,7 @@ export function App() {
               isBatchMode={isBatchMode}
               selectedBatchIds={selectedBatchIds}
               onToggleBatchSelect={handleToggleBatchSelect}
+              activeRegion={activeRegion}
             />
           ))}
         </main>
