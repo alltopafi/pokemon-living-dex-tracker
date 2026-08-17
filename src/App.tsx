@@ -99,7 +99,7 @@ function App() {
   const handleToggleCaught = (id: number) => {
     setCaughtMap((prev) => {
       const currentSt = prev[id];
-      const isCurrentlyCaught = !!currentSt?.caught || currentSt?.status === 'caught';
+      const isCurrentlyCaught = !!currentSt?.caught || currentSt?.status === 'caught' || currentSt?.status === 'has_base';
       const newStatus: ObtainmentStatus = isCurrentlyCaught ? 'uncaught' : 'caught';
 
       const next = {
@@ -274,19 +274,21 @@ function App() {
     return REGIONS.find(r => r.id === activeRegion) || REGIONS[0];
   }, [activeRegion]);
 
+  // Counts both fully caught and base form acquired towards progress bar completion
   const regionCaughtCount = useMemo(() => {
     if (activeRegion === 'all') {
-      return Object.values(caughtMap).filter(v => v.caught || v.status === 'caught').length;
+      return Object.values(caughtMap).filter(v => v.caught || v.status === 'caught' || v.status === 'has_base').length;
     }
     let c = 0;
     for (let i = activeRegionInfo.startId; i <= activeRegionInfo.endId; i++) {
-      if (caughtMap[i]?.caught || caughtMap[i]?.status === 'caught') c++;
+      const st = caughtMap[i];
+      if (st?.caught || st?.status === 'caught' || st?.status === 'has_base') c++;
     }
     return c;
   }, [activeRegion, activeRegionInfo, caughtMap]);
 
   const totalCaughtCount = useMemo(() => {
-    return Object.values(caughtMap).filter(v => v.caught || v.status === 'caught').length;
+    return Object.values(caughtMap).filter(v => v.caught || v.status === 'caught' || v.status === 'has_base').length;
   }, [caughtMap]);
 
   // Export / Import

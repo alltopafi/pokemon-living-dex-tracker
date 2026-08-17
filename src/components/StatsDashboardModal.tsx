@@ -9,7 +9,10 @@ interface StatsModalProps {
 }
 
 export const StatsDashboardModal: React.FC<StatsModalProps> = ({ caughtMap, onClose }) => {
-  const totalCaught = Object.values(caughtMap).filter(c => c.caught).length;
+  const totalCaught = Object.values(caughtMap).filter(
+    c => c.caught || c.status === 'caught' || c.status === 'has_base'
+  ).length;
+
   const totalDex = 1025;
   const globalPct = ((totalCaught / totalDex) * 100).toFixed(1);
 
@@ -34,7 +37,10 @@ export const StatsDashboardModal: React.FC<StatsModalProps> = ({ caughtMap, onCl
           {REGIONS.filter(r => r.id !== 'all').map((region) => {
             let caughtCount = 0;
             for (let i = region.startId; i <= region.endId; i++) {
-              if (caughtMap[i]?.caught) caughtCount++;
+              const st = caughtMap[i];
+              if (st?.caught || st?.status === 'caught' || st?.status === 'has_base') {
+                caughtCount++;
+              }
             }
             const pct = ((caughtCount / region.total) * 100).toFixed(1);
             const isCompleted = caughtCount === region.total;
