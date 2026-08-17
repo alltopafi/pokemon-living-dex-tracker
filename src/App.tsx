@@ -1,20 +1,15 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import confetti from 'canvas-confetti';
+import { useState, useEffect, useMemo } from 'react';
 import { POKEMON_LIST, REGIONS } from './data/pokemonData';
-import { 
-  RegionId, 
-  Pokemon, 
-  FilterState, 
-  CaughtStateMap, 
-  SpriteStyle 
-} from './types/pokemon';
+import { RegionId, Pokemon, SpriteStyle, FilterState, CaughtStateMap, ObtainmentStatus } from './types/pokemon';
 import { 
   loadCaughtState, 
   saveCaughtState, 
   loadSpriteStyle, 
-  saveSpriteStyle, 
-  exportBackup, 
-  importBackup 
+  saveSpriteStyle,
+  loadSavedUsername,
+  saveUsername,
+  exportBackup,
+  importBackup
 } from './utils/storage';
 import { buildHomeBoxes } from './utils/boxHelper';
 import { loginUser, syncCaughtState } from './services/apiService';
@@ -25,28 +20,28 @@ import { PokemonCard } from './components/PokemonCard';
 import { PokemonHomeBox } from './components/PokemonHomeBox';
 import { PokemonDetailModal } from './components/PokemonDetailModal';
 import { StatsDashboardModal } from './components/StatsDashboardModal';
-import { BatchActionBar } from './components/BatchActionBar';
 import { UserLoginModal } from './components/UserLoginModal';
+import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
 
-const USERNAME_STORAGE_KEY = 'pokemon_living_dex_username_v1';
-
-export function App() {
-  const [caughtMap, setCaughtMap] = useState<CaughtStateMap>(loadCaughtState);
+function App() {
   const [activeRegion, setActiveRegion] = useState<RegionId>('all');
-  const [spriteStyle, setSpriteStyle] = useState<SpriteStyle>(loadSpriteStyle);
+  const [caughtMap, setCaughtMap] = useState<CaughtStateMap>(() => loadCaughtState());
+  const [spriteStyle, setSpriteStyle] = useState<SpriteStyle>(() => loadSpriteStyle());
+  
+  // Modals & Panels
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
 
-  // Username & DB Sync State
-  const [username, setUsername] = useState<string | null>(() => localStorage.getItem(USERNAME_STORAGE_KEY));
+  // User Auth & DB Syncing
+  const [username, setUsername] = useState<string>(() => loadSavedUsername());
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Batch Mode State
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<number>>(new Set());
 
+  // Filter State
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     status: 'all',
@@ -56,84 +51,88 @@ export function App() {
     viewMode: 'grid'
   });
 
-  // Save to LocalStorage whenever caughtMap changes
+  // Save caughtMap locally & trigger optional sync
   useEffect(() => {
     saveCaughtState(caughtMap);
   }, [caughtMap]);
 
-  // Sync to PostgreSQL DB helper
-  const performPostgresSync = useCallback(async (user: string, stateMap: CaughtStateMap) => {
-    setIsSyncing(true);
-    await syncCaughtState(user, stateMap);
-    setIsSyncing(false);
-  }, []);
-
-  // Handle Username Login
-  const handleUserLogin = async (newUsername: string) => {
-    const cleanUser = newUsername.trim().toLowerCase();
-    setUsername(cleanUser);
-    localStorage.setItem(USERNAME_STORAGE_KEY, cleanUser);
-    setIsUserModalOpen(false);
-
-    setIsSyncing(true);
-    const dbResult = await loginUser(cleanUser);
-    setIsSyncing(false);
-
-    if (dbResult) {
-      setCaughtMap(dbResult.caughtMap);
-    } else {
-      performPostgresSync(cleanUser, caughtMap);
-    }
-  };
-
-  // Handle User Logout
-  const handleUserLogout = () => {
-    setUsername(null);
-    localStorage.removeItem(USERNAME_STORAGE_KEY);
-    setIsUserModalOpen(false);
-  };
-
-  // Auto-login / fetch DB state on app load if username exists
+  // Initial Sync on load if username exists
   useEffect(() => {
     if (username) {
-      loginUser(username).then((dbResult) => {
-        if (dbResult && Object.keys(dbResult.caughtMap).length > 0) {
-          setCaughtMap(dbResult.caughtMap);
-        }
-      });
+      performPostgresSync(username, caughtMap);
     }
   }, []);
 
-  // Handle Sprite Style changes
+  const performPostgresSync = async (user: string, currentMap: CaughtStateMap) => {
+    try {
+      await syncCaughtState(user, currentMap);
+    } catch (e) {
+      console.warn('Postgres background sync error:', e);
+    }
+  };
+
+  const handleUserLogin = async (user: string) => {
+    try {
+      const res = await loginUser(user);
+      setUsername(user);
+      saveUsername(user);
+      if (res?.caughtMap) {
+        setCaughtMap(res.caughtMap);
+      }
+      setIsUserModalOpen(false);
+    } catch (e) {
+      alert('Login failed. Please make sure backend database server is running.');
+    }
+  };
+
+  const handleUserLogout = () => {
+    setUsername('');
+    saveUsername('');
+    setIsUserModalOpen(false);
+  };
+
   const handleSpriteStyleChange = (style: SpriteStyle) => {
     setSpriteStyle(style);
     saveSpriteStyle(style);
   };
 
-  // Toggle caught status for single card
   const handleToggleCaught = (id: number) => {
     setCaughtMap((prev) => {
-      const next = { ...prev };
-      const currentStatus = !!next[id]?.caught;
-      const newStatus = !currentStatus;
+      const currentSt = prev[id];
+      const isCurrentlyCaught = !!currentSt?.caught || currentSt?.status === 'caught';
+      const newStatus: ObtainmentStatus = isCurrentlyCaught ? 'uncaught' : 'caught';
 
-      next[id] = {
-        ...next[id],
-        caught: newStatus,
-        timestamp: newStatus ? Date.now() : undefined
-      };
-
-      if (newStatus) {
-        const totalCaughtCount = Object.values(next).filter(v => v.caught).length;
-        if (totalCaughtCount === 1025) {
-          confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      const next = {
+        ...prev,
+        [id]: {
+          ...prev[id],
+          caught: newStatus === 'caught',
+          status: newStatus,
+          timestamp: Date.now()
         }
-      }
-
+      };
       if (username) {
         performPostgresSync(username, next);
       }
+      return next;
+    });
+  };
 
+  const handleSetStatus = (id: number, status: ObtainmentStatus) => {
+    setCaughtMap((prev) => {
+      const isCaught = status === 'caught';
+      const next = {
+        ...prev,
+        [id]: {
+          ...prev[id],
+          caught: isCaught,
+          status: status,
+          timestamp: Date.now()
+        }
+      };
+      if (username) {
+        performPostgresSync(username, next);
+      }
       return next;
     });
   };
@@ -179,19 +178,20 @@ export function App() {
       }
 
       // 2. Status Filter
-      const isCaught = !!caughtMap[p.id]?.caught;
-      if (filters.status === 'caught' && !isCaught) return false;
-      if (filters.status === 'uncaught' && isCaught) return false;
+      const st = caughtMap[p.id];
+      const pStatus: ObtainmentStatus = st?.status || (st?.caught ? 'caught' : 'uncaught');
+      
+      if (filters.status === 'caught' && pStatus !== 'caught') return false;
+      if (filters.status === 'has_base' && pStatus !== 'has_base') return false;
+      if (filters.status === 'uncaught' && pStatus !== 'uncaught') return false;
 
       // 3. Game Caught In Filter
       if (filters.game === 'none') {
-        const status = caughtMap[p.id];
-        if (status?.caughtInGame && status.caughtInGame.trim() !== '') {
+        if (st?.caughtInGame && st.caughtInGame.trim() !== '') {
           return false;
         }
       } else if (filters.game !== 'all') {
-        const status = caughtMap[p.id];
-        if (!status?.caught || status.caughtInGame !== filters.game) {
+        if (pStatus === 'uncaught' || st?.caughtInGame !== filters.game) {
           return false;
         }
       }
@@ -236,7 +236,7 @@ export function App() {
 
   // Apply Batch Updates (Status, Game, Notes)
   const handleApplyBatchUpdate = (options: {
-    status?: 'caught' | 'uncaught';
+    status?: ObtainmentStatus;
     caughtInGame?: string;
     notes?: string;
   }) => {
@@ -246,45 +246,47 @@ export function App() {
       const next = { ...prev };
       selectedBatchIds.forEach((id) => {
         const existing = next[id] || { caught: false };
-        const newCaughtState = options.status !== undefined 
-          ? (options.status === 'caught') 
-          : existing.caught;
+        const newStatus = options.status !== undefined 
+          ? options.status 
+          : (existing.status || (existing.caught ? 'caught' : 'uncaught'));
+        
+        const newCaught = newStatus === 'caught';
 
         next[id] = {
           ...existing,
-          caught: newCaughtState,
+          caught: newCaught,
+          status: newStatus,
           caughtInGame: options.caughtInGame !== undefined ? options.caughtInGame : existing.caughtInGame,
           notes: options.notes !== undefined ? options.notes : existing.notes,
-          timestamp: newCaughtState ? (existing.timestamp || Date.now()) : undefined
+          timestamp: Date.now()
         };
       });
 
       if (username) {
         performPostgresSync(username, next);
       }
-
       return next;
     });
-
-    setSelectedBatchIds(new Set());
-    setIsBatchMode(false);
   };
 
-  // Active Region Stats
-  const activeRegionInfo = REGIONS.find(r => r.id === activeRegion) || REGIONS[0];
+  // Active Region Helper
+  const activeRegionInfo = useMemo(() => {
+    return REGIONS.find(r => r.id === activeRegion) || REGIONS[0];
+  }, [activeRegion]);
+
   const regionCaughtCount = useMemo(() => {
     if (activeRegion === 'all') {
-      return Object.values(caughtMap).filter(v => v.caught).length;
+      return Object.values(caughtMap).filter(v => v.caught || v.status === 'caught').length;
     }
     let c = 0;
     for (let i = activeRegionInfo.startId; i <= activeRegionInfo.endId; i++) {
-      if (caughtMap[i]?.caught) c++;
+      if (caughtMap[i]?.caught || caughtMap[i]?.status === 'caught') c++;
     }
     return c;
   }, [activeRegion, activeRegionInfo, caughtMap]);
 
   const totalCaughtCount = useMemo(() => {
-    return Object.values(caughtMap).filter(v => v.caught).length;
+    return Object.values(caughtMap).filter(v => v.caught || v.status === 'caught').length;
   }, [caughtMap]);
 
   // Export / Import
@@ -321,22 +323,19 @@ export function App() {
         onExport={handleExport}
         onImport={handleImport}
         onOpenStats={() => setIsStatsOpen(true)}
-        isBatchMode={isBatchMode}
-        onToggleBatchMode={() => {
-          setIsBatchMode(!isBatchMode);
-          if (isBatchMode) {
-            setSelectedBatchIds(new Set());
-          }
-        }}
         username={username}
         onOpenUserModal={() => setIsUserModalOpen(true)}
-        isSyncing={isSyncing}
+        isBatchMode={isBatchMode}
+        onToggleBatchMode={() => {
+          setIsBatchMode(prev => !prev);
+          setSelectedBatchIds(new Set());
+        }}
       />
 
       <RegionTabs
         regions={REGIONS}
         activeRegion={activeRegion}
-        onSelectRegion={(id) => setActiveRegion(id)}
+        onSelectRegion={(regionId) => setActiveRegion(regionId)}
         caughtMap={caughtMap}
       />
 
@@ -365,19 +364,24 @@ export function App() {
         </main>
       ) : (
         <main className="dex-grid">
-          {filteredPokemon.map((pokemon) => (
-            <PokemonCard
-              key={pokemon.id}
-              pokemon={pokemon}
-              isCaught={!!caughtMap[pokemon.id]?.caught}
-              spriteStyle={spriteStyle}
-              onToggleCaught={handleToggleCaught}
-              onOpenDetail={(p) => setSelectedPokemon(p)}
-              isBatchMode={isBatchMode}
-              isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
-              onToggleBatchSelect={handleToggleBatchSelect}
-            />
-          ))}
+          {filteredPokemon.map((pokemon) => {
+            const st = caughtMap[pokemon.id];
+
+            return (
+              <PokemonCard
+                key={pokemon.id}
+                pokemon={pokemon}
+                isCaught={!!st?.caught}
+                status={st?.status}
+                spriteStyle={spriteStyle}
+                onToggleCaught={handleToggleCaught}
+                onOpenDetail={(p) => setSelectedPokemon(p)}
+                isBatchMode={isBatchMode}
+                isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
+                onToggleBatchSelect={handleToggleBatchSelect}
+              />
+            );
+          })}
         </main>
       )}
 
@@ -398,10 +402,13 @@ export function App() {
       {selectedPokemon && (
         <PokemonDetailModal
           pokemon={selectedPokemon}
-          status={caughtMap[selectedPokemon.id]}
+          isCaught={!!caughtMap[selectedPokemon.id]?.caught}
+          status={caughtMap[selectedPokemon.id]?.status}
+          initialNotes={caughtMap[selectedPokemon.id]?.notes}
+          initialGame={caughtMap[selectedPokemon.id]?.caughtInGame}
           spriteStyle={spriteStyle}
           onClose={() => setSelectedPokemon(null)}
-          onToggleCaught={handleToggleCaught}
+          onSetStatus={handleSetStatus}
           onUpdateNotes={handleUpdateNotes}
         />
       )}

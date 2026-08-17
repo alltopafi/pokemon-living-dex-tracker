@@ -1,61 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Gamepad2, ShieldCheck, FileText, MapPin, Loader2, Sparkles } from 'lucide-react';
-import { Pokemon, PokemonCaughtStatus, SpriteStyle } from '../types/pokemon';
+import { X, Check, ShieldCheck, MapPin, Gamepad2, FileText, Sparkles, GitBranch } from 'lucide-react';
+import { Pokemon, SpriteStyle, ObtainmentStatus } from '../types/pokemon';
 import { getSpriteUrl } from '../utils/storage';
 import { getPokemonObtainDetails, ObtainInfo } from '../services/encounterService';
 
-interface DetailModalProps {
-  pokemon: Pokemon | null;
-  status: PokemonCaughtStatus | undefined;
+interface PokemonDetailModalProps {
+  pokemon: Pokemon;
+  isCaught: boolean;
+  status?: ObtainmentStatus;
+  initialNotes?: string;
+  initialGame?: string;
   spriteStyle: SpriteStyle;
   onClose: () => void;
-  onToggleCaught: (id: number) => void;
+  onSetStatus: (id: number, status: ObtainmentStatus) => void;
   onUpdateNotes: (id: number, notes: string, caughtInGame: string) => void;
 }
 
-export const PokemonDetailModal: React.FC<DetailModalProps> = ({
+export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
   pokemon,
-  status,
+  isCaught,
+  status = isCaught ? 'caught' : 'uncaught',
+  initialNotes = '',
+  initialGame = '',
   spriteStyle,
   onClose,
-  onToggleCaught,
-  onUpdateNotes
+  onSetStatus,
+  onUpdateNotes,
 }) => {
-  if (!pokemon) return null;
-
-  const isCaught = !!status?.caught;
-  const [notes, setNotes] = useState(status?.notes || '');
-  const [caughtInGame, setCaughtInGame] = useState(status?.caughtInGame || '');
-
-  // Active game selection for location lookup
-  const [selectedGame, setSelectedGame] = useState<string | null>(pokemon.validGames[0] || null);
-  const [loadingObtain, setLoadingObtain] = useState<boolean>(false);
+  const [notes, setNotes] = useState(initialNotes);
+  const [caughtInGame, setCaughtInGame] = useState(initialGame);
+  
+  // Game selected for location lookup
+  const [selectedGame, setSelectedGame] = useState<string>(
+    pokemon.validGames.length > 0 ? pokemon.validGames[0] : ''
+  );
   const [obtainInfo, setObtainInfo] = useState<ObtainInfo | null>(null);
+  const [loadingObtain, setLoadingObtain] = useState<boolean>(false);
 
   useEffect(() => {
-    setNotes(status?.notes || '');
-    setCaughtInGame(status?.caughtInGame || '');
-    setSelectedGame(pokemon.validGames[0] || null);
-  }, [pokemon, status]);
-
-  // Fetch encounter locations / obtainment requirements when selectedGame changes
-  useEffect(() => {
-    if (selectedGame && pokemon) {
-      let isMounted = true;
+    let isMounted = true;
+    if (selectedGame) {
       setLoadingObtain(true);
-      
       getPokemonObtainDetails(pokemon.id, pokemon.name, selectedGame)
-        .then((info) => {
+        .then(info => {
           if (isMounted) {
             setObtainInfo(info);
             setLoadingObtain(false);
           }
         })
         .catch(() => {
-          if (isMounted) {
-            setObtainInfo(null);
-            setLoadingObtain(false);
-          }
+          if (isMounted) setLoadingObtain(false);
         });
 
       return () => {
@@ -70,6 +64,8 @@ export const PokemonDetailModal: React.FC<DetailModalProps> = ({
 
   const spriteUrl = getSpriteUrl(pokemon.id, spriteStyle);
   const formattedId = `#${String(pokemon.id).padStart(4, '0')}`;
+
+  const currentStatus: ObtainmentStatus = status || (isCaught ? 'caught' : 'uncaught');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -109,23 +105,19 @@ export const PokemonDetailModal: React.FC<DetailModalProps> = ({
               {pokemon.validGames.map(game => (
                 <button 
                   key={game} 
-                  className={`game-pill ${selectedGame === game ? 'active' : ''}`}
+                  className={`game-pill-btn ${selectedGame === game ? 'active' : ''}`}
                   onClick={() => setSelectedGame(game)}
-                  title={`Click to view ${pokemon.name} locations in ${game}`}
                 >
-                  <MapPin size={12} />
-                  <span>{game}</span>
+                  {game}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Interactive Game Encounter / Location Box */}
           {selectedGame && (
-            <div className="encounter-details-box">
-              <div className="encounter-header">
-                <span>Locations & Obtaining in {selectedGame}</span>
-                {loadingObtain && <Loader2 size={14} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />}
+            <div style={{ marginTop: '0.85rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '0.75rem' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--accent-gold)', fontWeight: 700, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <MapPin size={13} /> {selectedGame} Obtain Info & Encounters:
               </div>
 
               {loadingObtain ? (
@@ -188,7 +180,7 @@ export const PokemonDetailModal: React.FC<DetailModalProps> = ({
           </select>
         </div>
 
-        <div>
+        <div style={{ marginBottom: '1rem' }}>
           <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <FileText size={14} /> Notes / OT / ID / Pokeball:
           </label>
@@ -201,22 +193,32 @@ export const PokemonDetailModal: React.FC<DetailModalProps> = ({
           />
         </div>
 
-        <button 
-          className={`modal-toggle-btn ${isCaught ? 'mark-uncaught' : 'mark-caught'}`}
-          onClick={() => {
-            onToggleCaught(pokemon.id);
-          }}
-        >
-          {isCaught ? (
-            <>
-              <X size={18} /> Mark as Uncaught
-            </>
-          ) : (
-            <>
-              <Check size={18} /> Mark as Caught
-            </>
-          )}
-        </button>
+        <div className="status-selector-group">
+          <button 
+            type="button"
+            className={`status-btn btn-uncaught ${currentStatus === 'uncaught' ? 'active' : ''}`}
+            onClick={() => onSetStatus(pokemon.id, 'uncaught')}
+          >
+            <X size={15} /> Uncaught
+          </button>
+          
+          <button 
+            type="button"
+            className={`status-btn btn-has-base ${currentStatus === 'has_base' ? 'active' : ''}`}
+            onClick={() => onSetStatus(pokemon.id, 'has_base')}
+            title="You have a base form Pokemon ready to be evolved later"
+          >
+            <GitBranch size={15} /> Have Base Form (Needs Evo)
+          </button>
+
+          <button 
+            type="button"
+            className={`status-btn btn-caught ${currentStatus === 'caught' ? 'active' : ''}`}
+            onClick={() => onSetStatus(pokemon.id, 'caught')}
+          >
+            <Check size={15} /> Caught / Evolved
+          </button>
+        </div>
       </div>
     </div>
   );

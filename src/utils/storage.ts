@@ -2,6 +2,7 @@ import { CaughtStateMap, SpriteStyle } from '../types/pokemon';
 
 const CAUGHT_STORAGE_KEY = 'pokemon_living_dex_caught_v1';
 const SPRITE_STORAGE_KEY = 'pokemon_living_dex_sprite_style_v1';
+const USERNAME_STORAGE_KEY = 'pokemon_living_dex_username_v1';
 
 export function loadCaughtState(): CaughtStateMap {
   try {
@@ -39,6 +40,22 @@ export function saveSpriteStyle(style: SpriteStyle): void {
     localStorage.setItem(SPRITE_STORAGE_KEY, style);
   } catch (e) {
     console.error('Failed to save sprite style setting', e);
+  }
+}
+
+export function loadSavedUsername(): string {
+  try {
+    return localStorage.getItem(USERNAME_STORAGE_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+export function saveUsername(username: string): void {
+  try {
+    localStorage.setItem(USERNAME_STORAGE_KEY, username);
+  } catch (e) {
+    console.error('Failed to save username to localStorage', e);
   }
 }
 

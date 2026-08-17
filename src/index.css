@@ -1266,5 +1266,111 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Has Base Form (Needs Evolution) Card & Badge Styles */
+.pokemon-card.has-base {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+}
+
+.pokemon-card.has-base:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.4);
+}
+
+.pokemon-card.has-base .pokemon-sprite {
+  filter: drop-shadow(0 4px 10px rgba(245, 158, 11, 0.3));
+  opacity: 0.92;
+}
+
+.caught-badge.badge-has-base {
+  background: #f59e0b;
+  color: #0f172a;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+}
+
+/* Status Selector Group inside Pokemon Detail Modal */
+.status-selector-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.status-btn {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.65rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.status-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.status-btn.btn-uncaught.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.35) 100%);
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.status-btn.btn-has-base.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.35) 100%);
+  border-color: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+.status-btn.btn-caught.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.35) 100%);
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+@media (max-width: 480px) {
+  .status-selector-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pokemon Card Info Button Styling */
+.info-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--accent-blue);
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.info-btn:hover {
+  background: rgba(56, 189, 248, 0.35);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+  transform: scale(1.1);
+}
+
+
+
 
 

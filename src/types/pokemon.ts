@@ -35,8 +35,11 @@ export interface RegionInfo {
   nativeGames: string[];
 }
 
+export type ObtainmentStatus = 'uncaught' | 'caught' | 'has_base';
+
 export interface PokemonCaughtStatus {
   caught: boolean;
+  status?: ObtainmentStatus; // 'uncaught' | 'caught' | 'has_base'
   notes?: string;
   caughtInGame?: string;
   timestamp?: number;
@@ -50,7 +53,7 @@ export type ViewMode = 'grid' | 'home-box';
 
 export interface FilterState {
   search: string;
-  status: 'all' | 'caught' | 'uncaught';
+  status: 'all' | 'caught' | 'uncaught' | 'has_base';
   type: string; // 'all' or specific PokemonType
   game: string; // 'all' or specific origin game name (e.g. 'Blue', 'HeartGold')
   sortBy: 'id-asc' | 'id-desc' | 'name-asc' | 'name-desc';
@@ -60,15 +63,17 @@ export interface FilterState {
 export interface DexStats {
   total: number;
   caught: number;
+  hasBase: number;
   percentage: number;
 }
 
 export interface HomeBoxData {
   boxNumber: number;
-  boxTitle: string; // e.g. "K 1-30"
-  regionPrefix: string; // e.g. "K"
+  boxTitle: string;
+  regionPrefix: string;
   startId: number;
   endId: number;
   pokemonList: Pokemon[];
   caughtCount: number;
+  hasBaseCount?: number;
 }

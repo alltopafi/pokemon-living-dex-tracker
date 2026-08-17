@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, CheckCircle2 } from 'lucide-react';
+import { Package, CheckCircle2, GitBranch } from 'lucide-react';
 import { HomeBoxData, Pokemon, SpriteStyle, CaughtStateMap, RegionId } from '../types/pokemon';
 import { PokemonCard } from './PokemonCard';
 import { getPokemonBoxLocation } from '../utils/boxHelper';
@@ -29,6 +29,7 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
 }) => {
   const isCompleted = box.caughtCount === box.pokemonList.length;
   const percentage = Math.round((box.caughtCount / box.pokemonList.length) * 100);
+  const hasBaseCount = box.hasBaseCount || 0;
 
   return (
     <div className={`home-box-card ${isCompleted ? 'completed' : ''}`}>
@@ -40,6 +41,11 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
         </div>
 
         <div className="home-box-progress">
+          {hasBaseCount > 0 && (
+            <span style={{ fontSize: '0.78rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.2rem', marginRight: '0.4rem' }}>
+              <GitBranch size={13} /> {hasBaseCount} Base
+            </span>
+          )}
           {isCompleted && <CheckCircle2 size={16} color="var(--accent-green)" />}
           <span>{box.caughtCount}/{box.pokemonList.length} ({percentage}%)</span>
         </div>
@@ -48,12 +54,14 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
       <div className="home-box-grid">
         {box.pokemonList.map((pokemon) => {
           const loc = getPokemonBoxLocation(pokemon, activeRegion);
+          const st = caughtMap[pokemon.id];
 
           return (
             <PokemonCard
               key={pokemon.id}
               pokemon={pokemon}
-              isCaught={!!caughtMap[pokemon.id]?.caught}
+              isCaught={!!st?.caught}
+              status={st?.status}
               spriteStyle={spriteStyle}
               onToggleCaught={onToggleCaught}
               onOpenDetail={onOpenDetail}

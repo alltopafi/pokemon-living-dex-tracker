@@ -226,7 +226,8 @@ export const Header: React.FC<HeaderProps> = ({
           onChange={(e) => onFilterChange({ status: e.target.value as any })}
         >
           <option value="all">All Status</option>
-          <option value="caught">Caught Only</option>
+          <option value="caught">Caught / Evolved Only</option>
+          <option value="has_base">Has Base Form (Needs Evolution)</option>
           <option value="uncaught">Uncaught Only</option>
         </select>
 

@@ -19,10 +19,10 @@ export const RegionTabs: React.FC<RegionTabsProps> = ({
       {regions.map((region) => {
         let count = 0;
         if (region.id === 'all') {
-          count = Object.values(caughtMap).filter(v => v.caught).length;
+          count = Object.values(caughtMap).filter(v => v.caught || v.status === 'caught').length;
         } else {
           for (let i = region.startId; i <= region.endId; i++) {
-            if (caughtMap[i]?.caught) {
+            if (caughtMap[i]?.caught || caughtMap[i]?.status === 'caught') {
               count++;
             }
           }

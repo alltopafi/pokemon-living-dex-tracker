@@ -96,7 +96,11 @@ export function buildHomeBoxes(
       const endId = chunk[chunk.length - 1].id;
       
       const boxTitle = startId === endId ? `${prefix} ${startId}` : `${prefix} ${startId}-${endId}`;
-      const caughtCount = chunk.filter(p => !!caughtMap[p.id]?.caught).length;
+      const caughtCount = chunk.filter(p => {
+        const st = caughtMap[p.id];
+        return !!st?.caught || st?.status === 'caught';
+      }).length;
+      const hasBaseCount = chunk.filter(p => caughtMap[p.id]?.status === 'has_base').length;
 
       boxes.push({
         boxNumber: currentGlobalBox++,
@@ -105,7 +109,8 @@ export function buildHomeBoxes(
         startId,
         endId,
         pokemonList: chunk,
-        caughtCount
+        caughtCount,
+        hasBaseCount
       });
     }
   }

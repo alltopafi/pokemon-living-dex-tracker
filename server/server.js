@@ -45,7 +45,7 @@ app.post('/api/user/login', async (req, res) => {
 
     // 2. Fetch User's Caught Records
     const caughtRes = await pool.query(
-      'SELECT pokemon_id, caught, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
+      'SELECT pokemon_id, caught, status, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
       [user.id]
     );
 
@@ -53,6 +53,7 @@ app.post('/api/user/login', async (req, res) => {
     for (const row of caughtRes.rows) {
       caughtMap[row.pokemon_id] = {
         caught: row.caught,
+        status: row.status || (row.caught ? 'caught' : 'uncaught'),
         notes: row.notes || undefined,
         caughtInGame: row.caught_in_game || undefined,
         timestamp: row.updated_at ? new Date(row.updated_at).getTime() : undefined
@@ -80,7 +81,7 @@ app.get('/api/caught/:username', async (req, res) => {
 
     const userId = userRes.rows[0].id;
     const caughtRes = await pool.query(
-      'SELECT pokemon_id, caught, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
+      'SELECT pokemon_id, caught, status, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
       [userId]
     );
 
@@ -88,6 +89,7 @@ app.get('/api/caught/:username', async (req, res) => {
     for (const row of caughtRes.rows) {
       caughtMap[row.pokemon_id] = {
         caught: row.caught,
+        status: row.status || (row.caught ? 'caught' : 'uncaught'),
         notes: row.notes || undefined,
         caughtInGame: row.caught_in_game || undefined,
         timestamp: row.updated_at ? new Date(row.updated_at).getTime() : undefined
@@ -123,20 +125,24 @@ app.post('/api/caught/sync', async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      for (const [pokemonIdStr, status] of Object.entries(caughtMap)) {
+      for (const [pokemonIdStr, statusObj] of Object.entries(caughtMap)) {
         const pokemonId = parseInt(pokemonIdStr, 10);
         if (isNaN(pokemonId)) continue;
 
+        const statusStr = statusObj.status || (statusObj.caught ? 'caught' : 'uncaught');
+        const isCaughtBool = statusStr === 'caught' || !!statusObj.caught;
+
         await client.query(
-          `INSERT INTO pokemon_caught (user_id, pokemon_id, caught, notes, caught_in_game, updated_at)
-           VALUES ($1, $2, $3, $4, $5, NOW())
+          `INSERT INTO pokemon_caught (user_id, pokemon_id, caught, status, notes, caught_in_game, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW())
            ON CONFLICT (user_id, pokemon_id) 
            DO UPDATE SET 
              caught = EXCLUDED.caught,
+             status = EXCLUDED.status,
              notes = EXCLUDED.notes,
              caught_in_game = EXCLUDED.caught_in_game,
              updated_at = NOW();`,
-          [userId, pokemonId, !!status.caught, status.notes || null, status.caughtInGame || null]
+          [userId, pokemonId, isCaughtBool, statusStr, statusObj.notes || null, statusObj.caughtInGame || null]
         );
       }
 

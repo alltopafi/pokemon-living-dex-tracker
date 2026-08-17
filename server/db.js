@@ -39,11 +39,17 @@ export async function initDb() {
         user_id INT REFERENCES users(id) ON DELETE CASCADE,
         pokemon_id INT NOT NULL,
         caught BOOLEAN DEFAULT FALSE,
+        status VARCHAR(32) DEFAULT 'uncaught',
         notes TEXT,
         caught_in_game VARCHAR(64),
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (user_id, pokemon_id)
       );
+    `);
+
+    // Ensure status column exists if updating existing database
+    await client.query(`
+      ALTER TABLE pokemon_caught ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'uncaught';
     `);
 
     client.release();

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, X, Gamepad2, FileText, CheckSquare, Square, Sparkles } from 'lucide-react';
+import { ObtainmentStatus } from '../types/pokemon';
 
 interface BatchActionBarProps {
   selectedCount: number;
@@ -7,7 +8,7 @@ interface BatchActionBarProps {
   onSelectAll: () => void;
   onDeselectAll: () => void;
   onApplyBatchUpdate: (options: {
-    status?: 'caught' | 'uncaught';
+    status?: ObtainmentStatus;
     caughtInGame?: string;
     notes?: string;
   }) => void;
@@ -38,7 +39,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
   onApplyBatchUpdate,
   onExitBatchMode
 }) => {
-  const [markStatus, setMarkStatus] = useState<'keep' | 'caught' | 'uncaught'>('caught');
+  const [markStatus, setMarkStatus] = useState<'keep' | ObtainmentStatus>('caught');
   const [selectedGame, setSelectedGame] = useState<string>('');
   const [batchNotes, setBatchNotes] = useState<string>('');
 
@@ -87,7 +88,8 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
             value={markStatus}
             onChange={(e) => setMarkStatus(e.target.value as any)}
           >
-            <option value="caught">Mark as Caught</option>
+            <option value="caught">Mark as Caught / Evolved</option>
+            <option value="has_base">Mark as Have Base Form (Needs Evo)</option>
             <option value="uncaught">Mark as Uncaught</option>
             <option value="keep">Keep Current Status</option>
           </select>

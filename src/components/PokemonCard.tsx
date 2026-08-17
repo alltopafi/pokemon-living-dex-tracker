@@ -1,11 +1,12 @@
 import React from 'react';
-import { Check, Info, CheckSquare, Square } from 'lucide-react';
-import { Pokemon, SpriteStyle } from '../types/pokemon';
+import { Check, Info, CheckSquare, Square, GitBranch } from 'lucide-react';
+import { Pokemon, SpriteStyle, ObtainmentStatus } from '../types/pokemon';
 import { getSpriteUrl } from '../utils/storage';
 
 interface PokemonCardProps {
   pokemon: Pokemon;
   isCaught: boolean;
+  status?: ObtainmentStatus;
   spriteStyle: SpriteStyle;
   onToggleCaught: (id: number) => void;
   onOpenDetail: (pokemon: Pokemon) => void;
@@ -18,8 +19,8 @@ interface PokemonCardProps {
 export const PokemonCard: React.FC<PokemonCardProps> = ({
   pokemon,
   isCaught,
+  status = isCaught ? 'caught' : 'uncaught',
   spriteStyle,
-  onToggleCaught,
   onOpenDetail,
   isBatchMode = false,
   isSelectedInBatch = false,
@@ -29,25 +30,24 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   const formattedId = `#${String(pokemon.id).padStart(4, '0')}`;
   const spriteUrl = getSpriteUrl(pokemon.id, spriteStyle);
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // If clicking directly on info button, don't toggle
-    const target = e.target as HTMLElement;
-    if (target.closest('.info-btn')) {
-      return;
-    }
+  const isHasBase = status === 'has_base';
+  const isFullyCaught = isCaught || status === 'caught';
 
+  const handleCardClick = () => {
     if (isBatchMode && onToggleBatchSelect) {
       onToggleBatchSelect(pokemon.id);
     } else {
-      onToggleCaught(pokemon.id);
+      onOpenDetail(pokemon);
     }
   };
 
+  const statusLabel = isFullyCaught ? 'Caught' : isHasBase ? 'Base Form Acquired (Needs Evolution)' : 'Uncaught';
+
   return (
     <div 
-      className={`pokemon-card ${isCaught ? 'caught' : ''} ${isBatchMode ? 'batch-mode' : ''} ${isSelectedInBatch ? 'batch-selected' : ''}`}
+      className={`pokemon-card ${isFullyCaught ? 'caught' : isHasBase ? 'has-base' : ''} ${isBatchMode ? 'batch-mode' : ''} ${isSelectedInBatch ? 'batch-selected' : ''}`}
       onClick={handleCardClick}
-      title={`${pokemon.name} - ${isCaught ? 'Caught' : 'Uncaught'}${boxLocation ? ` (${boxLocation})` : ''}`}
+      title={`${pokemon.name} - ${statusLabel}${boxLocation ? ` (${boxLocation})` : ''}`}
     >
       <div className="dex-number">{formattedId}</div>
 
@@ -60,8 +60,14 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
           )}
         </div>
       ) : (
-        <div className="caught-badge">
-          {isCaught && <Check size={14} strokeWidth={3} />}
+        <div className={`caught-badge ${isHasBase ? 'badge-has-base' : ''}`}>
+          {isFullyCaught ? (
+            <Check size={14} strokeWidth={3} />
+          ) : isHasBase ? (
+            <span title="Has Base Form (Needs Evolution)">
+              <GitBranch size={13} strokeWidth={2.5} />
+            </span>
+          ) : null}
         </div>
       )}
 
@@ -97,18 +103,9 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
             e.stopPropagation();
             onOpenDetail(pokemon);
           }}
-          title="View Origin Region Rules & Locations"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            padding: '2px',
-            display: 'flex',
-            alignItems: 'center'
-          }}
+          title="View Origin Region Rules, Locations & Change Status"
         >
-          <Info size={14} />
+          <Info size={13} />
         </button>
       </div>
     </div>
