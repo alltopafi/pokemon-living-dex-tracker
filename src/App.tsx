@@ -19,6 +19,7 @@ import {
 import { buildHomeBoxes } from './utils/boxHelper';
 import { loginUser, syncCaughtState } from './services/apiService';
 import { Header } from './components/Header';
+import { BankShutdownBanner } from './components/BankShutdownBanner';
 import { RegionTabs } from './components/RegionTabs';
 import { PokemonCard } from './components/PokemonCard';
 import { PokemonHomeBox } from './components/PokemonHomeBox';
@@ -306,6 +307,7 @@ export function App() {
 
   return (
     <div className="app-container" style={{ paddingBottom: isBatchMode ? '140px' : '3rem' }}>
+      <BankShutdownBanner />
       <Header
         totalCaught={totalCaughtCount}
         totalDex={1025}
