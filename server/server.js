@@ -103,7 +103,7 @@ app.get('/api/caught/:username', async (req, res) => {
   }
 });
 
-// Sync Caught State Map to PostgreSQL for Username
+// Sync Caught State Map to PostgreSQL for Username and return merged state
 app.post('/api/caught/sync', async (req, res) => {
   const { username, caughtMap } = req.body;
   if (!username || !caughtMap) {
@@ -147,7 +147,25 @@ app.post('/api/caught/sync', async (req, res) => {
       }
 
       await client.query('COMMIT');
-      res.json({ success: true, count: Object.keys(caughtMap).length });
+
+      // 3. Fetch full merged state from PostgreSQL to return to client
+      const allCaughtRes = await client.query(
+        'SELECT pokemon_id, caught, status, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
+        [userId]
+      );
+
+      const mergedMap = {};
+      for (const row of allCaughtRes.rows) {
+        mergedMap[row.pokemon_id] = {
+          caught: row.caught,
+          status: row.status || (row.caught ? 'caught' : 'uncaught'),
+          notes: row.notes || undefined,
+          caughtInGame: row.caught_in_game || undefined,
+          timestamp: row.updated_at ? new Date(row.updated_at).getTime() : undefined
+        };
+      }
+
+      res.json({ success: true, count: Object.keys(mergedMap).length, caughtMap: mergedMap });
     } catch (txErr) {
       await client.query('ROLLBACK');
       throw txErr;

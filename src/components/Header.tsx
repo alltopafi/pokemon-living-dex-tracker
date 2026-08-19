@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Search, Download, Upload, BarChart3, Settings, CheckCircle2, Layers, User, Database, RefreshCw, LayoutGrid, Package } from 'lucide-react';
+import { Search, Download, Upload, BarChart3, Settings, Layers, User, Database, RefreshCw, LayoutGrid, Package } from 'lucide-react';
 import { FilterState, SpriteStyle } from '../types/pokemon';
 
 interface HeaderProps {
@@ -19,6 +19,7 @@ interface HeaderProps {
   onToggleBatchMode: () => void;
   username: string | null;
   onOpenUserModal: () => void;
+  onManualSync: () => void;
   isSyncing?: boolean;
 }
 
@@ -55,17 +56,13 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleBatchMode,
   username,
   onOpenUserModal,
+  onManualSync,
   isSyncing = false
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const activePercentage = regionTotal > 0 
-    ? ((regionCaught / regionTotal) * 100).toFixed(1) 
-    : '0.0';
-
-  const totalPercentage = totalDex > 0
-    ? ((totalCaught / totalDex) * 100).toFixed(1)
-    : '0.0';
+  const globalPercentage = Math.round((totalCaught / totalDex) * 100);
+  const regionPercentage = Math.round((regionCaught / regionTotal) * 100);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,6 +90,26 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-actions">
+          {/* Sync Now Button */}
+          <button 
+            className="action-btn"
+            onClick={onManualSync}
+            disabled={isSyncing}
+            title={username ? `Sync & merge collection with Database (@${username})` : 'Click to log in and sync to Database'}
+            style={{
+              borderColor: 'rgba(56, 189, 248, 0.4)',
+              background: 'rgba(56, 189, 248, 0.15)',
+              color: '#ffffff'
+            }}
+          >
+            <RefreshCw 
+              size={16} 
+              color="var(--accent-blue)" 
+              style={{ animation: isSyncing ? 'spin 1s linear infinite' : undefined }} 
+            />
+            <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+          </button>
+
           {/* Username / DB Sync Badge */}
           <button 
             className="action-btn"
@@ -103,9 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
               background: username ? 'rgba(56, 189, 248, 0.15)' : undefined
             }}
           >
-            {isSyncing ? (
-              <RefreshCw size={16} className="animate-spin" style={{ color: 'var(--accent-blue)', animation: 'spin 1s linear infinite' }} />
-            ) : username ? (
+            {username ? (
               <Database size={16} color="var(--accent-blue)" />
             ) : (
               <User size={16} />
@@ -114,9 +129,9 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button 
-            className={`action-btn ${isBatchMode ? 'active-batch-btn' : ''}`} 
+            className="action-btn" 
             onClick={onToggleBatchMode} 
-            title="Toggle Batch Select & Bulk Edit Mode"
+            title="Batch Edit Mode"
             style={{
               borderColor: isBatchMode ? 'var(--accent-purple)' : undefined,
               background: isBatchMode ? 'rgba(129, 140, 248, 0.2)' : undefined,
@@ -158,43 +173,51 @@ export const Header: React.FC<HeaderProps> = ({
               title="Select Sprite Style"
             >
               <option value="official-artwork">Official Artwork</option>
-              <option value="home">Pokemon HOME 3D</option>
-              <option value="pixel">Classic Sprite</option>
+              <option value="home">Pokémon HOME</option>
+              <option value="pixel">Classic Pixel</option>
             </select>
           </div>
         </div>
       </div>
 
       <div className="progress-section">
-        <div className="progress-header">
-          <div className="progress-title-group">
-            <CheckCircle2 size={20} color="var(--accent-blue)" />
-            <span>{activeRegionName} Progress</span>
+        {/* Active Region Meter */}
+        <div className="progress-group">
+          <div className="progress-info">
+            <span className="progress-label">{activeRegionName} Region Progress</span>
+            <span className="progress-count">
+              {regionCaught} / {regionTotal}
+              <span className="progress-percentage">({regionPercentage}%)</span>
+            </span>
           </div>
-          <div className="progress-counter">
-            {regionCaught} / {regionTotal} ({activePercentage}%)
+          <div className="progress-bar-bg">
+            <div className="progress-bar-fill" style={{ width: `${regionPercentage}%` }} />
           </div>
         </div>
-        <div className="progress-bar-bg">
-          <div 
-            className="progress-bar-fill" 
-            style={{ width: `${activePercentage}%` }} 
-          />
-        </div>
-        {activeRegionName !== 'National Dex' && (
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'right', marginTop: '-0.25rem' }}>
-            National Dex: {totalCaught} / {totalDex} ({totalPercentage}%)
+
+        {/* Total National Dex Meter */}
+        <div className="progress-group">
+          <div className="progress-info">
+            <span className="progress-label">National Dex Progress</span>
+            <span className="progress-count">
+              {totalCaught} / {totalDex}
+              <span className="progress-percentage">({globalPercentage}%)</span>
+            </span>
           </div>
-        )}
+          <div className="progress-bar-bg">
+            <div className="progress-bar-fill" style={{ width: `${globalPercentage}%` }} />
+          </div>
+        </div>
       </div>
 
-      <div className="filter-bar">
+      {/* Controls Bar (Search, Sort, Filters) */}
+      <div className="controls-row">
         {/* View Mode Toggle */}
-        <div className="view-toggle-group" style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.8)', padding: '3px', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+        <div className="view-mode-toggle">
           <button
             className={`view-toggle-btn ${filterState.viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => onFilterChange({ viewMode: 'grid' })}
-            title="Fluid Grid View"
+            title="Grid View Mode"
           >
             <LayoutGrid size={15} />
             <span>Grid</span>
@@ -239,8 +262,8 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <option value="all">All Origin Games</option>
           <option value="none">Unassigned (No Game Selected)</option>
-          {ALL_GAME_OPTIONS.map((game) => (
-            <option key={game} value={game}>{game}</option>
+          {ALL_GAME_OPTIONS.map(g => (
+            <option key={g} value={g}>{g}</option>
           ))}
         </select>
 
@@ -275,10 +298,10 @@ export const Header: React.FC<HeaderProps> = ({
           value={filterState.sortBy}
           onChange={(e) => onFilterChange({ sortBy: e.target.value as any })}
         >
-          <option value="id-asc">Sort by # (Low to High)</option>
-          <option value="id-desc">Sort by # (High to Low)</option>
-          <option value="name-asc">Sort by Name (A-Z)</option>
-          <option value="name-desc">Sort by Name (Z-A)</option>
+          <option value="id-asc">Dex Number (Low to High)</option>
+          <option value="id-desc">Dex Number (High to Low)</option>
+          <option value="name-asc">Name (A-Z)</option>
+          <option value="name-desc">Name (Z-A)</option>
         </select>
       </div>
     </header>

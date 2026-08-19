@@ -12,7 +12,7 @@ import {
   importBackup
 } from './utils/storage';
 import { buildHomeBoxes } from './utils/boxHelper';
-import { loginUser, syncCaughtState } from './services/apiService';
+import { loginUser, syncCaughtState, fetchUserCaughtState } from './services/apiService';
 import { Header } from './components/Header';
 import { BankShutdownBanner } from './components/BankShutdownBanner';
 import { RegionTabs } from './components/RegionTabs';
@@ -36,6 +36,7 @@ function App() {
   // User Auth & DB Syncing
   const [username, setUsername] = useState<string>(() => loadSavedUsername());
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Batch Mode State
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
@@ -63,11 +64,55 @@ function App() {
     }
   }, []);
 
+  // Auto-sync on window focus when returning to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      if (username) {
+        fetchUserCaughtState(username).then((remoteMap) => {
+          if (remoteMap) {
+            setCaughtMap(remoteMap);
+            saveCaughtState(remoteMap);
+          }
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [username]);
+
   const performPostgresSync = async (user: string, currentMap: CaughtStateMap) => {
+    setIsSyncing(true);
     try {
-      await syncCaughtState(user, currentMap);
+      const mergedMap = await syncCaughtState(user, currentMap);
+      if (mergedMap) {
+        setCaughtMap(mergedMap);
+        saveCaughtState(mergedMap);
+      }
     } catch (e) {
       console.warn('Postgres background sync error:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleManualSync = async () => {
+    if (!username) {
+      setIsUserModalOpen(true);
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const mergedMap = await syncCaughtState(username, caughtMap);
+      if (mergedMap) {
+        setCaughtMap(mergedMap);
+        saveCaughtState(mergedMap);
+      }
+    } catch (e) {
+      console.warn('Manual sync error:', e);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -78,6 +123,7 @@ function App() {
       saveUsername(user);
       if (res?.caughtMap) {
         setCaughtMap(res.caughtMap);
+        saveCaughtState(res.caughtMap);
       }
       setIsUserModalOpen(false);
     } catch (e) {
@@ -327,6 +373,8 @@ function App() {
         onOpenStats={() => setIsStatsOpen(true)}
         username={username}
         onOpenUserModal={() => setIsUserModalOpen(true)}
+        onManualSync={handleManualSync}
+        isSyncing={isSyncing}
         isBatchMode={isBatchMode}
         onToggleBatchMode={() => {
           setIsBatchMode(prev => !prev);

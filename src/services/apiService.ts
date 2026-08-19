@@ -30,7 +30,19 @@ export async function loginUser(username: string): Promise<UserLoginResult | nul
   }
 }
 
-export async function syncCaughtState(username: string, caughtMap: CaughtStateMap): Promise<boolean> {
+export async function fetchUserCaughtState(username: string): Promise<CaughtStateMap | null> {
+  try {
+    const res = await fetch(`${API_BASE}/caught/${encodeURIComponent(username)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.caughtMap || null;
+  } catch (e) {
+    console.warn('Failed to fetch caught state from backend', e);
+    return null;
+  }
+}
+
+export async function syncCaughtState(username: string, caughtMap: CaughtStateMap): Promise<CaughtStateMap | null> {
   try {
     const res = await fetch(`${API_BASE}/caught/sync`, {
       method: 'POST',
@@ -38,10 +50,12 @@ export async function syncCaughtState(username: string, caughtMap: CaughtStateMa
       body: JSON.stringify({ username, caughtMap })
     });
 
-    return res.ok;
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.caughtMap || null;
   } catch (e) {
     console.warn('Failed to sync to PostgreSQL backend', e);
-    return false;
+    return null;
   }
 }
 
