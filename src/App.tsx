@@ -20,6 +20,7 @@ import { PokemonCard } from './components/PokemonCard';
 import { PokemonHomeBox } from './components/PokemonHomeBox';
 import { PokemonDetailModal } from './components/PokemonDetailModal';
 import { StatsDashboardModal } from './components/StatsDashboardModal';
+import { CaughtHistoryModal } from './components/CaughtHistoryModal';
 import { UserLoginModal } from './components/UserLoginModal';
 import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
@@ -32,6 +33,7 @@ function App() {
   // Modals & Panels
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
 
   // User Auth & DB Syncing
   const [username, setUsername] = useState<string>(() => loadSavedUsername());
@@ -378,6 +380,7 @@ function App() {
         onExport={handleExport}
         onImport={handleImport}
         onOpenStats={() => setIsStatsOpen(true)}
+        onOpenHistory={() => setIsHistoryOpen(true)}
         username={username}
         onOpenUserModal={() => setIsUserModalOpen(true)}
         onManualSync={handleManualSync}
@@ -474,6 +477,14 @@ function App() {
         <StatsDashboardModal
           caughtMap={caughtMap}
           onClose={() => setIsStatsOpen(false)}
+        />
+      )}
+
+      {isHistoryOpen && (
+        <CaughtHistoryModal
+          caughtMap={caughtMap}
+          spriteStyle={spriteStyle}
+          onClose={() => setIsHistoryOpen(false)}
         />
       )}
 

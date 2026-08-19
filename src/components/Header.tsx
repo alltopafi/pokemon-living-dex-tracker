@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Search, Download, Upload, BarChart3, Settings, Layers, User, Database, RefreshCw, LayoutGrid, Package } from 'lucide-react';
+import { Search, Download, Upload, BarChart3, Settings, Layers, User, Database, RefreshCw, LayoutGrid, Package, History } from 'lucide-react';
 import { FilterState, SpriteStyle } from '../types/pokemon';
 
 interface HeaderProps {
@@ -15,6 +15,7 @@ interface HeaderProps {
   onExport: () => void;
   onImport: (content: string) => void;
   onOpenStats: () => void;
+  onOpenHistory: () => void;
   isBatchMode: boolean;
   onToggleBatchMode: () => void;
   username: string | null;
@@ -52,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   onExport,
   onImport,
   onOpenStats,
+  onOpenHistory,
   isBatchMode,
   onToggleBatchMode,
   username,
@@ -145,6 +147,11 @@ export const Header: React.FC<HeaderProps> = ({
           <button className="action-btn" onClick={onOpenStats} title="View Detailed Dex Breakdown">
             <BarChart3 size={16} />
             <span>Stats</span>
+          </button>
+
+          <button className="action-btn" onClick={onOpenHistory} title="View Catch History & Game Audit Log">
+            <History size={16} color="var(--accent-blue)" />
+            <span>History Log</span>
           </button>
 
           <button className="action-btn" onClick={onExport} title="Export Progress Backup JSON">
