@@ -226,10 +226,17 @@ function App() {
       // 2. Status Filter
       const st = caughtMap[p.id];
       const pStatus: ObtainmentStatus = st?.status || (st?.caught ? 'caught' : 'uncaught');
-      
-      if (filters.status === 'caught' && pStatus !== 'caught') return false;
-      if (filters.status === 'has_base' && pStatus !== 'has_base') return false;
-      if (filters.status === 'uncaught' && pStatus !== 'uncaught') return false;
+      const isAcquired = !!st?.caught || pStatus === 'caught' || pStatus === 'has_base';
+
+      if (filters.status === 'caught' || filters.status === 'caught_or_base') {
+        if (!isAcquired) return false;
+      } else if (filters.status === 'caught_only') {
+        if (pStatus !== 'caught' && (!st?.caught || pStatus === 'has_base')) return false;
+      } else if (filters.status === 'has_base') {
+        if (pStatus !== 'has_base') return false;
+      } else if (filters.status === 'uncaught') {
+        if (isAcquired) return false;
+      }
 
       // 3. Game Caught In Filter
       if (filters.game === 'none') {

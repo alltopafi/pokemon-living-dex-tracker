@@ -51,9 +51,11 @@ export type SpriteStyle = 'official-artwork' | 'home' | 'pixel';
 
 export type ViewMode = 'grid' | 'home-box';
 
+export type FilterStatus = 'all' | 'caught' | 'caught_or_base' | 'caught_only' | 'has_base' | 'uncaught';
+
 export interface FilterState {
   search: string;
-  status: 'all' | 'caught' | 'uncaught' | 'has_base';
+  status: FilterStatus;
   type: string; // 'all' or specific PokemonType
   game: string; // 'all' or specific origin game name (e.g. 'Blue', 'HeartGold')
   sortBy: 'id-asc' | 'id-desc' | 'name-asc' | 'name-desc';
