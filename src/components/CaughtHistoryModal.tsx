@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, History, Calendar, Filter, Search, Gamepad2, GitBranch, Check, ArrowUpDown } from 'lucide-react';
+import { X, History, Calendar, Filter, Search, Gamepad2, GitBranch, Check, ArrowUpDown, ChevronLeft, ChevronRight, BarChart2, PieChart, Layers } from 'lucide-react';
 import { CaughtStateMap, SpriteStyle, ObtainmentStatus } from '../types/pokemon';
 import { POKEMON_LIST, REGIONS } from '../data/pokemonData';
 import { getSpriteUrl } from '../utils/storage';
@@ -41,6 +41,9 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'id-asc' | 'id-desc'>('newest');
+
+  // Chart Carousel Index: 0 = Timeline, 1 = By Game, 2 = By Region, 3 = By Status
+  const [chartIndex, setChartIndex] = useState<number>(0);
 
   // Convert caughtMap to array of items with Pokemon details & timestamp
   const historyList = useMemo(() => {
@@ -117,31 +120,100 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
     });
   }, [caughtMap, timeSpan, startDate, endDate, selectedRegion, selectedGame, selectedStatus, searchQuery, sortOrder]);
 
-  // Breakdown by game for matching filtered list
+  // Chart Data 1: Catches Over Time (Timeline histogram buckets)
+  const timelineBuckets = useMemo(() => {
+    const buckets: Record<string, number> = {};
+    historyList.forEach((item) => {
+      let dateKey = 'Earlier';
+      if (item.timestamp > 0) {
+        const d = new Date(item.timestamp);
+        dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      buckets[dateKey] = (buckets[dateKey] || 0) + 1;
+    });
+
+    const entries = Object.entries(buckets).sort((a, b) => a[0].localeCompare(b[0]));
+    const maxVal = Math.max(...entries.map(e => e[1]), 1);
+    return { entries, maxVal };
+  }, [historyList]);
+
+  // Chart Data 2: Game Breakdown
   const gameBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
     historyList.forEach((item) => {
       const g = item.caughtInGame || 'Unassigned';
       counts[g] = (counts[g] || 0) + 1;
     });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const maxVal = Math.max(...sorted.map(e => e[1]), 1);
+    return { sorted, maxVal };
   }, [historyList]);
+
+  // Chart Data 3: Regional Breakdown
+  const regionBreakdown = useMemo(() => {
+    const counts: Record<string, number> = {};
+    REGIONS.filter(r => r.id !== 'all').forEach(r => { counts[r.name] = 0; });
+    historyList.forEach((item) => {
+      const rInfo = REGIONS.find(r => r.id === item.pokemon.region);
+      if (rInfo) {
+        counts[rInfo.name] = (counts[rInfo.name] || 0) + 1;
+      }
+    });
+    return REGIONS.filter(r => r.id !== 'all').map(r => ({
+      name: r.name,
+      genName: r.genName,
+      count: counts[r.name] || 0,
+      total: r.total
+    }));
+  }, [historyList]);
+
+  // Chart Data 4: Obtainment Status Breakdown
+  const statusBreakdown = useMemo(() => {
+    let caughtCount = 0;
+    let baseCount = 0;
+    historyList.forEach((item) => {
+      if (item.status === 'has_base') baseCount++;
+      else caughtCount++;
+    });
+    const total = historyList.length || 1;
+    return {
+      caughtCount,
+      baseCount,
+      caughtPct: Math.round((caughtCount / total) * 100),
+      basePct: Math.round((baseCount / total) * 100)
+    };
+  }, [historyList]);
+
+  const CHART_TITLES = [
+    { title: 'Timeline Activity (Catches by Date)', icon: Calendar },
+    { title: 'Origin Game Breakdown', icon: Gamepad2 },
+    { title: 'Regional Generation Distribution', icon: Layers },
+    { title: 'Obtainment Status Ratio (Caught vs Base Form)', icon: PieChart }
+  ];
+
+  const handlePrevChart = () => {
+    setChartIndex((prev) => (prev === 0 ? CHART_TITLES.length - 1 : prev - 1));
+  };
+
+  const handleNextChart = () => {
+    setChartIndex((prev) => (prev === CHART_TITLES.length - 1 ? 0 : prev + 1));
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div 
         className="modal-content" 
-        style={{ maxWidth: '940px', width: '92vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} 
+        style={{ maxWidth: '960px', width: '92vw', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }} 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <History size={24} color="var(--accent-blue)" />
             <div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Collection History & Game Audit Log</h2>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Collection History & Analytics</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Track when & where each Pokémon was caught across games and timeframes.
+                Interactive catch timeline, game distribution charts, and detailed audit log.
               </p>
             </div>
           </div>
@@ -154,19 +226,19 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
         <div 
           style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-            gap: '0.75rem',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', 
+            gap: '0.6rem',
             background: 'rgba(255, 255, 255, 0.03)',
-            padding: '0.9rem',
+            padding: '0.8rem',
             borderRadius: '12px',
             border: '1px solid rgba(255, 255, 255, 0.08)',
-            marginBottom: '1rem'
+            marginBottom: '0.75rem'
           }}
         >
           {/* Time Span Filter */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-              <Calendar size={13} /> Timeframe
+            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+              <Calendar size={12} /> Timeframe
             </label>
             <select
               className="select-control"
@@ -184,8 +256,8 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
 
           {/* Region / Generation Filter */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-              <Filter size={13} /> Region / Gen
+            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+              <Filter size={12} /> Region / Gen
             </label>
             <select
               className="select-control"
@@ -204,8 +276,8 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
 
           {/* Origin Game Filter */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-              <Gamepad2 size={13} /> Origin Game
+            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+              <Gamepad2 size={12} /> Origin Game
             </label>
             <select
               className="select-control"
@@ -223,8 +295,8 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
 
           {/* Obtainment Status Filter */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-              <GitBranch size={13} /> Status
+            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+              <GitBranch size={12} /> Status
             </label>
             <select
               className="select-control"
@@ -240,8 +312,8 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
 
           {/* Sort Order */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-              <ArrowUpDown size={13} /> Sort Order
+            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+              <ArrowUpDown size={12} /> Sort Order
             </label>
             <select
               className="select-control"
@@ -258,8 +330,8 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
 
           {/* Search Query */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-              <Search size={13} /> Search
+            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+              <Search size={12} /> Search
             </label>
             <input
               type="text"
@@ -274,7 +346,7 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
 
         {/* Custom Date Inputs if custom timeframe selected */}
         {timeSpan === 'custom' && (
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', background: 'rgba(56, 189, 248, 0.1)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', background: 'rgba(56, 189, 248, 0.1)', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
             <div>
               <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.2rem' }}>Start Date</label>
               <input 
@@ -296,20 +368,186 @@ export const CaughtHistoryModal: React.FC<CaughtHistoryModalProps> = ({
           </div>
         )}
 
-        {/* Summary Stats Pill Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', padding: '0.4rem 0.2rem' }}>
-          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Showing <strong>{historyList.length}</strong> matching entries
-          </div>
-          {gameBreakdown.length > 0 && (
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {gameBreakdown.slice(0, 4).map(([gameName, count]) => (
-                <span key={gameName} className="origin-tag" style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}>
-                  {gameName}: {count}
-                </span>
-              ))}
+        {/* CHART CAROUSEL SECTION */}
+        <div 
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)', 
+            borderRadius: '12px', 
+            border: '1px solid rgba(56, 189, 248, 0.25)', 
+            padding: '1rem',
+            marginBottom: '0.75rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+          }}
+        >
+          {/* Chart Header & Navigation Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <BarChart2 size={18} color="var(--accent-blue)" />
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>
+                {CHART_TITLES[chartIndex].title}
+              </h3>
             </div>
-          )}
+
+            {/* Quick Chart Selector Tabs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              {['Timeline', 'By Game', 'By Region', 'By Status'].map((label, idx) => (
+                <button
+                  key={label}
+                  onClick={() => setChartIndex(idx)}
+                  style={{
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: chartIndex === idx ? 'var(--accent-blue)' : 'rgba(255, 255, 255, 0.06)',
+                    color: chartIndex === idx ? '#ffffff' : 'var(--text-secondary)',
+                    border: chartIndex === idx ? '1px solid var(--accent-blue)' : '1px solid transparent',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.5rem' }}>
+                <button
+                  onClick={handlePrevChart}
+                  className="info-btn"
+                  title="Previous Chart"
+                  style={{ width: '28px', height: '28px' }}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={handleNextChart}
+                  className="info-btn"
+                  title="Next Chart"
+                  style={{ width: '28px', height: '28px' }}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Chart Body Content */}
+          <div style={{ minHeight: '130px', maxHeight: '180px', overflowY: 'auto', padding: '0.4rem 0.2rem' }}>
+            {/* Chart 1: Timeline Bar Chart */}
+            {chartIndex === 0 && (
+              <div>
+                {timelineBuckets.entries.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem' }}>No activity timeline data for selected filters.</p>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', height: '110px', paddingBottom: '1.2rem', overflowX: 'auto' }}>
+                    {timelineBuckets.entries.map(([dateKey, count]) => {
+                      const heightPct = Math.max(15, Math.round((count / timelineBuckets.maxVal) * 100));
+                      return (
+                        <div key={dateKey} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: '45px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--accent-blue)', marginBottom: '0.2rem' }}>{count}</span>
+                          <div 
+                            style={{ 
+                              width: '100%', 
+                              height: `${heightPct}%`, 
+                              background: 'linear-gradient(180deg, var(--accent-blue) 0%, rgba(56, 189, 248, 0.3) 100%)', 
+                              borderRadius: '4px 4px 0 0',
+                              transition: 'height 0.3s ease'
+                            }} 
+                          />
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.3rem', whiteSpace: 'nowrap' }}>
+                            {dateKey === 'Earlier' ? 'Earlier' : dateKey.slice(5)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Chart 2: Game Breakdown Chart */}
+            {chartIndex === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {gameBreakdown.sorted.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem' }}>No game data found.</p>
+                ) : (
+                  gameBreakdown.sorted.slice(0, 6).map(([gameName, count]) => {
+                    const pct = Math.round((count / (historyList.length || 1)) * 100);
+                    const widthPct = Math.max(5, Math.round((count / gameBreakdown.maxVal) * 100));
+                    return (
+                      <div key={gameName} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ width: '130px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {gameName}
+                        </span>
+                        <div className="progress-bar-bg" style={{ flex: 1, height: '10px' }}>
+                          <div className="progress-bar-fill" style={{ width: `${widthPct}%`, background: 'linear-gradient(90deg, #818cf8 0%, #38bdf8 100%)' }} />
+                        </div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', width: '60px', textAlign: 'right' }}>
+                          {count} ({pct}%)
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {/* Chart 3: Regional Distribution Chart */}
+            {chartIndex === 2 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.5rem' }}>
+                {regionBreakdown.map((r) => {
+                  const pct = Math.round((r.count / r.total) * 100);
+                  return (
+                    <div key={r.name} style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.4rem 0.6rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.2rem' }}>
+                        <span>{r.name} ({r.genName})</span>
+                        <span>{r.count} / {r.total} ({pct}%)</span>
+                      </div>
+                      <div className="progress-bar-bg" style={{ height: '6px' }}>
+                        <div className="progress-bar-fill" style={{ width: `${pct}%`, background: pct === 100 ? 'var(--accent-green)' : undefined }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Chart 4: Obtainment Status Ratio Chart */}
+            {chartIndex === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', padding: '0.4rem 0' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Check size={14} /> Fully Evolved / Caught
+                    </span>
+                    <span>{statusBreakdown.caughtCount} Pokémon ({statusBreakdown.caughtPct}%)</span>
+                  </div>
+                  <div className="progress-bar-bg" style={{ height: '12px' }}>
+                    <div className="progress-bar-fill" style={{ width: `${statusBreakdown.caughtPct}%`, background: '#10b981' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <GitBranch size={14} /> Has Base Form (Needs Evolution)
+                    </span>
+                    <span>{statusBreakdown.baseCount} Pokémon ({statusBreakdown.basePct}%)</span>
+                  </div>
+                  <div className="progress-bar-bg" style={{ height: '12px' }}>
+                    <div className="progress-bar-fill" style={{ width: `${statusBreakdown.basePct}%`, background: '#f59e0b' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Summary Counter Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', padding: '0.2rem' }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Detailed Log: <strong>{historyList.length}</strong> matching entries
+          </div>
         </div>
 
         {/* Table View */}
