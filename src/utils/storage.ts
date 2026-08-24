@@ -93,3 +93,39 @@ export function getSpriteUrl(id: number, style: SpriteStyle): string {
   // Official Artwork default
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
 }
+
+/**
+ * Merges local and remote CaughtStateMaps deterministically using Last-Write-Wins (timestamp-based).
+ * Local edits with newer or identical timestamps are preserved to prevent UI flickering and state rollback.
+ */
+export function mergeCaughtStates(local: CaughtStateMap = {}, remote: CaughtStateMap = {}): CaughtStateMap {
+  const merged: CaughtStateMap = { ...remote, ...local };
+  const allIds = new Set([
+    ...Object.keys(local).map(Number),
+    ...Object.keys(remote).map(Number)
+  ]);
+
+  for (const id of allIds) {
+    if (isNaN(id)) continue;
+    const localItem = local[id];
+    const remoteItem = remote[id];
+
+    if (localItem && remoteItem) {
+      const localTs = localItem.timestamp || 0;
+      const remoteTs = remoteItem.timestamp || 0;
+
+      if (localTs >= remoteTs) {
+        merged[id] = localItem;
+      } else {
+        merged[id] = remoteItem;
+      }
+    } else if (localItem) {
+      merged[id] = localItem;
+    } else if (remoteItem) {
+      merged[id] = remoteItem;
+    }
+  }
+
+  return merged;
+}
+

@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { POKEMON_LIST, REGIONS } from './data/pokemonData';
 import { RegionId, Pokemon, SpriteStyle, FilterState, CaughtStateMap, ObtainmentStatus } from './types/pokemon';
 import { 
   loadCaughtState, 
   saveCaughtState, 
   loadSpriteStyle, 
-  saveSpriteStyle,
-  loadSavedUsername,
-  saveUsername,
-  exportBackup,
-  importBackup
+  saveSpriteStyle, 
+  loadSavedUsername, 
+  saveUsername, 
+  exportBackup, 
+  importBackup,
+  mergeCaughtStates
 } from './utils/storage';
 import { buildHomeBoxes } from './utils/boxHelper';
 import { loginUser, syncCaughtState, fetchUserCaughtState } from './services/apiService';
@@ -40,6 +41,13 @@ function App() {
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  // Synchronization refs to prevent race conditions, rapid requests, and stale overwrites
+  const syncVersionRef = useRef<number>(0);
+  const syncDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const caughtMapRef = useRef<CaughtStateMap>(caughtMap);
+  caughtMapRef.current = caughtMap;
+  const isApplyingRemoteRef = useRef<boolean>(false);
+
   // Batch Mode State
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<number>>(new Set());
@@ -54,26 +62,83 @@ function App() {
     viewMode: 'grid'
   });
 
-  // Save caughtMap locally & trigger optional sync
+  const performPostgresSync = useCallback(async (user: string, mapToSync: CaughtStateMap) => {
+    if (!user) return;
+    const reqVersion = ++syncVersionRef.current;
+    setIsSyncing(true);
+    try {
+      const remoteMap = await syncCaughtState(user, mapToSync);
+      // Stale response check: only apply if this request is still the latest active one
+      if (reqVersion === syncVersionRef.current && remoteMap) {
+        setCaughtMap((prev) => {
+          isApplyingRemoteRef.current = true;
+          const merged = mergeCaughtStates(prev, remoteMap);
+          saveCaughtState(merged);
+          return merged;
+        });
+      }
+    } catch (e) {
+      console.warn('Postgres background sync error:', e);
+    } finally {
+      if (reqVersion === syncVersionRef.current) {
+        setIsSyncing(false);
+      }
+    }
+  }, []);
+
+  const scheduleDebouncedSync = useCallback((mapToSync: CaughtStateMap) => {
+    if (!username) return;
+    if (syncDebounceTimerRef.current) {
+      clearTimeout(syncDebounceTimerRef.current);
+    }
+    syncDebounceTimerRef.current = setTimeout(() => {
+      performPostgresSync(username, mapToSync);
+    }, 400);
+  }, [username, performPostgresSync]);
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (syncDebounceTimerRef.current) {
+        clearTimeout(syncDebounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Save caughtMap locally and schedule background sync when local state changes
   useEffect(() => {
     saveCaughtState(caughtMap);
-  }, [caughtMap]);
+
+    if (isApplyingRemoteRef.current) {
+      isApplyingRemoteRef.current = false;
+      return;
+    }
+
+    if (username) {
+      scheduleDebouncedSync(caughtMap);
+    }
+  }, [caughtMap, username, scheduleDebouncedSync]);
 
   // Initial Sync on load if username exists
   useEffect(() => {
     if (username) {
-      performPostgresSync(username, caughtMap);
+      performPostgresSync(username, caughtMapRef.current);
     }
-  }, []);
+  }, [username, performPostgresSync]);
 
   // Auto-sync on window focus when returning to tab
   useEffect(() => {
     const handleFocus = () => {
       if (username) {
+        const reqVersion = ++syncVersionRef.current;
         fetchUserCaughtState(username).then((remoteMap) => {
-          if (remoteMap) {
-            setCaughtMap(remoteMap);
-            saveCaughtState(remoteMap);
+          if (reqVersion === syncVersionRef.current && remoteMap) {
+            setCaughtMap((prev) => {
+              isApplyingRemoteRef.current = true;
+              const merged = mergeCaughtStates(prev, remoteMap);
+              saveCaughtState(merged);
+              return merged;
+            });
           }
         }).catch(() => {});
       }
@@ -83,39 +148,15 @@ function App() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [username]);
 
-  const performPostgresSync = async (user: string, currentMap: CaughtStateMap) => {
-    setIsSyncing(true);
-    try {
-      const mergedMap = await syncCaughtState(user, currentMap);
-      if (mergedMap) {
-        setCaughtMap(mergedMap);
-        saveCaughtState(mergedMap);
-      }
-    } catch (e) {
-      console.warn('Postgres background sync error:', e);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleManualSync = async () => {
     if (!username) {
       setIsUserModalOpen(true);
       return;
     }
-
-    setIsSyncing(true);
-    try {
-      const mergedMap = await syncCaughtState(username, caughtMap);
-      if (mergedMap) {
-        setCaughtMap(mergedMap);
-        saveCaughtState(mergedMap);
-      }
-    } catch (e) {
-      console.warn('Manual sync error:', e);
-    } finally {
-      setIsSyncing(false);
+    if (syncDebounceTimerRef.current) {
+      clearTimeout(syncDebounceTimerRef.current);
     }
+    await performPostgresSync(username, caughtMapRef.current);
   };
 
   const handleUserLogin = async (user: string) => {
@@ -124,8 +165,15 @@ function App() {
       setUsername(user);
       saveUsername(user);
       if (res?.caughtMap) {
-        setCaughtMap(res.caughtMap);
-        saveCaughtState(res.caughtMap);
+        setCaughtMap((prev) => {
+          isApplyingRemoteRef.current = true;
+          const merged = mergeCaughtStates(prev, res.caughtMap);
+          saveCaughtState(merged);
+          performPostgresSync(user, merged);
+          return merged;
+        });
+      } else {
+        performPostgresSync(user, caughtMapRef.current);
       }
       setIsUserModalOpen(false);
     } catch (e) {
@@ -145,43 +193,37 @@ function App() {
   };
 
   const handleToggleCaught = (id: number) => {
+    const now = Date.now();
     setCaughtMap((prev) => {
       const currentSt = prev[id];
       const isCurrentlyCaught = !!currentSt?.caught || currentSt?.status === 'caught' || currentSt?.status === 'has_base';
       const newStatus: ObtainmentStatus = isCurrentlyCaught ? 'uncaught' : 'caught';
 
-      const next = {
+      return {
         ...prev,
         [id]: {
           ...prev[id],
           caught: newStatus === 'caught',
           status: newStatus,
-          timestamp: Date.now()
+          timestamp: now
         }
       };
-      if (username) {
-        performPostgresSync(username, next);
-      }
-      return next;
     });
   };
 
   const handleSetStatus = (id: number, status: ObtainmentStatus) => {
+    const now = Date.now();
     setCaughtMap((prev) => {
       const isCaught = status === 'caught';
-      const next = {
+      return {
         ...prev,
         [id]: {
           ...prev[id],
           caught: isCaught,
           status: status,
-          timestamp: Date.now()
+          timestamp: now
         }
       };
-      if (username) {
-        performPostgresSync(username, next);
-      }
-      return next;
     });
   };
 
@@ -200,20 +242,18 @@ function App() {
 
   // Update Notes / Game Caught In for single card
   const handleUpdateNotes = (id: number, notes: string, caughtInGame: string) => {
+    const now = Date.now();
     setCaughtMap((prev) => {
-      const next = {
+      return {
         ...prev,
         [id]: {
           ...prev[id],
           caught: prev[id]?.caught ?? true,
           notes,
-          caughtInGame
+          caughtInGame,
+          timestamp: now
         }
       };
-      if (username) {
-        performPostgresSync(username, next);
-      }
-      return next;
     });
   };
 
@@ -296,6 +336,7 @@ function App() {
     notes?: string;
   }) => {
     if (selectedBatchIds.size === 0) return;
+    const now = Date.now();
 
     setCaughtMap((prev) => {
       const next = { ...prev };
@@ -313,13 +354,10 @@ function App() {
           status: newStatus,
           caughtInGame: options.caughtInGame !== undefined ? options.caughtInGame : existing.caughtInGame,
           notes: options.notes !== undefined ? options.notes : existing.notes,
-          timestamp: Date.now()
+          timestamp: now
         };
       });
 
-      if (username) {
-        performPostgresSync(username, next);
-      }
       return next;
     });
   };

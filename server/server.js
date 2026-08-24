@@ -120,10 +120,17 @@ app.post('/api/caught/sync', async (req, res) => {
     }
     const userId = userRes.rows[0].id;
 
-    // 2. Transaction for Bulk Upsert
+    // 2. Transaction for Bulk Upsert using UNNEST
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+
+      const pokemonIds = [];
+      const caughts = [];
+      const statuses = [];
+      const notesArr = [];
+      const games = [];
+      const timestamps = [];
 
       for (const [pokemonIdStr, statusObj] of Object.entries(caughtMap)) {
         const pokemonId = parseInt(pokemonIdStr, 10);
@@ -131,18 +138,36 @@ app.post('/api/caught/sync', async (req, res) => {
 
         const statusStr = statusObj.status || (statusObj.caught ? 'caught' : 'uncaught');
         const isCaughtBool = statusStr === 'caught' || !!statusObj.caught;
+        const ts = statusObj.timestamp ? new Date(statusObj.timestamp) : new Date();
 
+        pokemonIds.push(pokemonId);
+        caughts.push(isCaughtBool);
+        statuses.push(statusStr);
+        notesArr.push(statusObj.notes || null);
+        games.push(statusObj.caughtInGame || null);
+        timestamps.push(ts);
+      }
+
+      if (pokemonIds.length > 0) {
         await client.query(
           `INSERT INTO pokemon_caught (user_id, pokemon_id, caught, status, notes, caught_in_game, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())
+           SELECT $1, u.pokemon_id, u.caught, u.status, u.notes, u.caught_in_game, u.updated_at
+           FROM UNNEST(
+             $2::int[],
+             $3::boolean[],
+             $4::varchar[],
+             $5::text[],
+             $6::varchar[],
+             $7::timestamp[]
+           ) AS u(pokemon_id, caught, status, notes, caught_in_game, updated_at)
            ON CONFLICT (user_id, pokemon_id) 
            DO UPDATE SET 
              caught = EXCLUDED.caught,
              status = EXCLUDED.status,
              notes = EXCLUDED.notes,
              caught_in_game = EXCLUDED.caught_in_game,
-             updated_at = NOW();`,
-          [userId, pokemonId, isCaughtBool, statusStr, statusObj.notes || null, statusObj.caughtInGame || null]
+             updated_at = EXCLUDED.updated_at;`,
+          [userId, pokemonIds, caughts, statuses, notesArr, games, timestamps]
         );
       }
 
