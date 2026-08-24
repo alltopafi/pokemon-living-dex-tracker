@@ -1,7 +1,8 @@
 import React from 'react';
 import { Check, Info, CheckSquare, Square, GitBranch } from 'lucide-react';
-import { Pokemon, SpriteStyle, ObtainmentStatus } from '../types/pokemon';
+import { Pokemon, SpriteStyle, ObtainmentStatus, RegionId } from '../types/pokemon';
 import { getSpriteUrl } from '../utils/storage';
+import { getRegionalDexNumber } from '../data/pokemonData';
 
 interface PokemonCardProps {
   pokemon: Pokemon;
@@ -14,6 +15,7 @@ interface PokemonCardProps {
   isSelectedInBatch?: boolean;
   onToggleBatchSelect?: (id: number) => void;
   boxLocation?: string; // Optional: e.g. "K Box 1 Slot 1" when in HOME Box view mode
+  activeRegion?: RegionId;
 }
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({
@@ -25,9 +27,12 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   isBatchMode = false,
   isSelectedInBatch = false,
   onToggleBatchSelect,
-  boxLocation
+  boxLocation,
+  activeRegion
 }) => {
-  const formattedId = `#${String(pokemon.id).padStart(4, '0')}`;
+  const nationalFormattedId = `#${String(pokemon.id).padStart(4, '0')}`;
+  const regionalNumber = activeRegion && activeRegion !== 'all' ? getRegionalDexNumber(pokemon.id, activeRegion) : null;
+  const regionalFormattedId = regionalNumber !== null ? `#${String(regionalNumber).padStart(3, '0')}` : null;
   const spriteUrl = getSpriteUrl(pokemon.id, spriteStyle);
 
   const isHasBase = status === 'has_base';
@@ -42,14 +47,20 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   };
 
   const statusLabel = isFullyCaught ? 'Caught' : isHasBase ? 'Base Form Acquired (Needs Evolution)' : 'Uncaught';
+  const displayIdTooltip = regionalFormattedId ? `${regionalFormattedId} (Nat. ${nationalFormattedId})` : nationalFormattedId;
 
   return (
     <div 
       className={`pokemon-card ${isFullyCaught ? 'caught' : isHasBase ? 'has-base' : ''} ${isBatchMode ? 'batch-mode' : ''} ${isSelectedInBatch ? 'batch-selected' : ''}`}
       onClick={handleCardClick}
-      title={`${pokemon.name} - ${statusLabel}${boxLocation ? ` (${boxLocation})` : ''}`}
+      title={`${pokemon.name} - ${displayIdTooltip} - ${statusLabel}${boxLocation ? ` (${boxLocation})` : ''}`}
     >
-      <div className="dex-number">{formattedId}</div>
+      <div className="dex-number-group">
+        <span className="dex-number">{regionalFormattedId || nationalFormattedId}</span>
+        {regionalFormattedId && (
+          <span className="dex-nat-number">Nat. {nationalFormattedId}</span>
+        )}
+      </div>
 
       {isBatchMode ? (
         <div className={`batch-checkbox ${isSelectedInBatch ? 'checked' : ''}`}>

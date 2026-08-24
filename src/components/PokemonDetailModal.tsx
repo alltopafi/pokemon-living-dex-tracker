@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, ShieldCheck, MapPin, Gamepad2, FileText, Sparkles, GitBranch } from 'lucide-react';
-import { Pokemon, SpriteStyle, ObtainmentStatus } from '../types/pokemon';
+import { Pokemon, SpriteStyle, ObtainmentStatus, RegionId } from '../types/pokemon';
 import { getSpriteUrl } from '../utils/storage';
 import { getPokemonObtainDetails, ObtainInfo } from '../services/encounterService';
+import { getRegionalDexNumber } from '../data/pokemonData';
 
 interface PokemonDetailModalProps {
   pokemon: Pokemon;
@@ -14,6 +15,7 @@ interface PokemonDetailModalProps {
   onClose: () => void;
   onSetStatus: (id: number, status: ObtainmentStatus) => void;
   onUpdateNotes: (id: number, notes: string, caughtInGame: string) => void;
+  activeRegion?: RegionId;
 }
 
 export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
@@ -26,6 +28,7 @@ export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
   onClose,
   onSetStatus,
   onUpdateNotes,
+  activeRegion
 }) => {
   const [notes, setNotes] = useState(initialNotes);
   const [caughtInGame, setCaughtInGame] = useState(initialGame);
@@ -63,7 +66,9 @@ export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
   };
 
   const spriteUrl = getSpriteUrl(pokemon.id, spriteStyle);
-  const formattedId = `#${String(pokemon.id).padStart(4, '0')}`;
+  const nationalFormattedId = `#${String(pokemon.id).padStart(4, '0')}`;
+  const regionalNumber = activeRegion && activeRegion !== 'all' ? getRegionalDexNumber(pokemon.id, activeRegion) : null;
+  const regionalFormattedId = regionalNumber !== null ? `#${String(regionalNumber).padStart(3, '0')}` : null;
 
   const currentStatus: ObtainmentStatus = status || (isCaught ? 'caught' : 'uncaught');
 
@@ -77,8 +82,17 @@ export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
         <div className="modal-header">
           <img src={spriteUrl} alt={pokemon.name} className="modal-sprite" />
           <div className="modal-title-group">
-            <div style={{ color: 'var(--accent-blue)', fontSize: '0.85rem', fontWeight: 700 }}>
-              {formattedId}
+            <div style={{ color: 'var(--accent-blue)', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              {regionalFormattedId ? (
+                <>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>{regionalFormattedId}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 600 }}>
+                    (National {nationalFormattedId})
+                  </span>
+                </>
+              ) : (
+                <span>{nationalFormattedId}</span>
+              )}
             </div>
             <h2>{pokemon.name}</h2>
             <div className="types-row" style={{ justifyContent: 'flex-start', marginTop: '0.4rem' }}>

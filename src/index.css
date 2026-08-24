@@ -405,18 +405,40 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
-.dex-number {
+.dex-number-group {
   position: absolute;
-  top: 0.5rem;
+  top: 0.45rem;
   left: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dex-number {
   font-family: var(--font-heading);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-muted);
 }
 
 .pokemon-card.caught .dex-number {
   color: var(--accent-blue);
+}
+
+.dex-nat-number {
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.7);
+  letter-spacing: -0.01em;
+  margin-top: 1px;
+}
+
+.pokemon-card.caught .dex-nat-number {
+  color: rgba(56, 189, 248, 0.75);
 }
 
 /* Sprite Container */

@@ -477,6 +477,7 @@ function App() {
                 isBatchMode={isBatchMode}
                 isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
                 onToggleBatchSelect={handleToggleBatchSelect}
+                activeRegion={activeRegion}
               />
             );
           })}
@@ -508,6 +509,7 @@ function App() {
           onClose={() => setSelectedPokemon(null)}
           onSetStatus={handleSetStatus}
           onUpdateNotes={handleUpdateNotes}
+          activeRegion={activeRegion}
         />
       )}
 

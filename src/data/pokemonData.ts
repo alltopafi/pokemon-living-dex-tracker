@@ -134,6 +134,18 @@ export function getValidGamesForId(id: number): string[] {
   return info ? info.nativeGames : [];
 }
 
+/**
+ * Returns the 1-based regional pokedex number for a Pokemon within a given region.
+ * Returns null if regionId is 'all' or if the Pokemon does not belong to that region.
+ */
+export function getRegionalDexNumber(pokemonId: number, regionId?: RegionId): number | null {
+  if (!regionId || regionId === 'all') return null;
+  const region = REGIONS.find(r => r.id === regionId);
+  if (!region) return null;
+  if (pokemonId < region.startId || pokemonId > region.endId) return null;
+  return pokemonId - region.startId + 1;
+}
+
 // Full dataset helper generator
 // We generate the exact 1025 Pokemon list with correct names, types, and regions
 import { RAW_POKEMON_LIST } from './rawPokemonData';

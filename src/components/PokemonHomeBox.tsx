@@ -69,6 +69,7 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
               isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
               onToggleBatchSelect={onToggleBatchSelect}
               boxLocation={loc.locationString}
+              activeRegion={activeRegion}
             />
           );
         })}
