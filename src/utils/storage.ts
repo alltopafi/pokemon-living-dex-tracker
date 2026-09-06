@@ -1,9 +1,10 @@
-import { CaughtStateMap, SpriteStyle, RegionId } from '../types/pokemon';
+import { CaughtStateMap, SpriteStyle, RegionId, ViewMode } from '../types/pokemon';
 
 const CAUGHT_STORAGE_KEY = 'pokemon_living_dex_caught_v1';
 const SPRITE_STORAGE_KEY = 'pokemon_living_dex_sprite_style_v1';
 const USERNAME_STORAGE_KEY = 'pokemon_living_dex_username_v1';
 const ACTIVE_REGION_STORAGE_KEY = 'pokemon_living_dex_active_region_v1';
+const VIEW_MODE_STORAGE_KEY = 'pokemon_living_dex_view_mode_v1';
 
 const VALID_REGION_IDS: RegionId[] = [
   'all',
@@ -74,6 +75,26 @@ export function saveActiveRegion(region: RegionId): void {
     localStorage.setItem(ACTIVE_REGION_STORAGE_KEY, region);
   } catch (e) {
     console.error('Failed to save active region setting to localStorage', e);
+  }
+}
+
+export function loadViewMode(): ViewMode {
+  try {
+    const raw = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    if (raw === 'grid' || raw === 'home-box') {
+      return raw;
+    }
+  } catch (e) {
+    console.error('Failed to load view mode setting from localStorage', e);
+  }
+  return 'home-box';
+}
+
+export function saveViewMode(mode: ViewMode): void {
+  try {
+    localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+  } catch (e) {
+    console.error('Failed to save view mode setting to localStorage', e);
   }
 }
 

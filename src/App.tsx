@@ -10,6 +10,8 @@ import {
   saveUsername, 
   loadActiveRegion,
   saveActiveRegion,
+  loadViewMode,
+  saveViewMode,
   exportBackup, 
   importBackup,
   mergeCaughtStates
@@ -54,15 +56,22 @@ function App() {
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<number>>(new Set());
 
-  // Filter State
-  const [filters, setFilters] = useState<FilterState>({
+  // Filter State (defaults to HOME Boxes)
+  const [filters, setFilters] = useState<FilterState>(() => ({
     search: '',
     status: 'all',
     type: 'all',
     game: 'all',
     sortBy: 'id-asc',
-    viewMode: 'grid'
-  });
+    viewMode: loadViewMode()
+  }));
+
+  const handleFilterChange = (newFilters: Partial<FilterState>) => {
+    if (newFilters.viewMode) {
+      saveViewMode(newFilters.viewMode);
+    }
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
 
   const performPostgresSync = useCallback(async (user: string, mapToSync: CaughtStateMap) => {
     if (!user) return;
@@ -419,7 +428,7 @@ function App() {
         regionCaught={regionCaughtCount}
         regionTotal={activeRegionInfo.total}
         filterState={filters}
-        onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
+        onFilterChange={handleFilterChange}
         spriteStyle={spriteStyle}
         onSpriteStyleChange={handleSpriteStyleChange}
         onExport={handleExport}
