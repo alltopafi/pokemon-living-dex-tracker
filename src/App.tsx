@@ -8,6 +8,8 @@ import {
   saveSpriteStyle, 
   loadSavedUsername, 
   saveUsername, 
+  loadActiveRegion,
+  saveActiveRegion,
   exportBackup, 
   importBackup,
   mergeCaughtStates
@@ -27,7 +29,7 @@ import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
 
 function App() {
-  const [activeRegion, setActiveRegion] = useState<RegionId>('all');
+  const [activeRegion, setActiveRegion] = useState<RegionId>(() => loadActiveRegion());
   const [caughtMap, setCaughtMap] = useState<CaughtStateMap>(() => loadCaughtState());
   const [spriteStyle, setSpriteStyle] = useState<SpriteStyle>(() => loadSpriteStyle());
   
@@ -190,6 +192,11 @@ function App() {
   const handleSpriteStyleChange = (style: SpriteStyle) => {
     setSpriteStyle(style);
     saveSpriteStyle(style);
+  };
+
+  const handleSelectRegion = (regionId: RegionId) => {
+    setActiveRegion(regionId);
+    saveActiveRegion(regionId);
   };
 
   const handleToggleCaught = (id: number) => {
@@ -433,7 +440,7 @@ function App() {
       <RegionTabs
         regions={REGIONS}
         activeRegion={activeRegion}
-        onSelectRegion={(regionId) => setActiveRegion(regionId)}
+        onSelectRegion={handleSelectRegion}
         caughtMap={caughtMap}
       />
 

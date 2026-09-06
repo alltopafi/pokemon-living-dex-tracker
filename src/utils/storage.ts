@@ -1,8 +1,22 @@
-import { CaughtStateMap, SpriteStyle } from '../types/pokemon';
+import { CaughtStateMap, SpriteStyle, RegionId } from '../types/pokemon';
 
 const CAUGHT_STORAGE_KEY = 'pokemon_living_dex_caught_v1';
 const SPRITE_STORAGE_KEY = 'pokemon_living_dex_sprite_style_v1';
 const USERNAME_STORAGE_KEY = 'pokemon_living_dex_username_v1';
+const ACTIVE_REGION_STORAGE_KEY = 'pokemon_living_dex_active_region_v1';
+
+const VALID_REGION_IDS: RegionId[] = [
+  'all',
+  'kanto',
+  'johto',
+  'hoenn',
+  'sinnoh',
+  'unova',
+  'kalos',
+  'alola',
+  'galar',
+  'paldea'
+];
 
 export function loadCaughtState(): CaughtStateMap {
   try {
@@ -40,6 +54,26 @@ export function saveSpriteStyle(style: SpriteStyle): void {
     localStorage.setItem(SPRITE_STORAGE_KEY, style);
   } catch (e) {
     console.error('Failed to save sprite style setting', e);
+  }
+}
+
+export function loadActiveRegion(): RegionId {
+  try {
+    const raw = localStorage.getItem(ACTIVE_REGION_STORAGE_KEY) as RegionId;
+    if (raw && VALID_REGION_IDS.includes(raw)) {
+      return raw;
+    }
+  } catch (e) {
+    console.error('Failed to load active region setting from localStorage', e);
+  }
+  return 'all';
+}
+
+export function saveActiveRegion(region: RegionId): void {
+  try {
+    localStorage.setItem(ACTIVE_REGION_STORAGE_KEY, region);
+  } catch (e) {
+    console.error('Failed to save active region setting to localStorage', e);
   }
 }
 
