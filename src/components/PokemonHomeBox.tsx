@@ -1,8 +1,9 @@
 import React from 'react';
-import { Package, CheckCircle2, GitBranch } from 'lucide-react';
+import { Package, CheckCircle2, GitBranch, Upload } from 'lucide-react';
 import { HomeBoxData, Pokemon, SpriteStyle, CaughtStateMap, RegionId } from '../types/pokemon';
 import { PokemonCard } from './PokemonCard';
 import { getPokemonBoxLocation } from '../utils/boxHelper';
+import { needsHomeTransfer } from '../utils/progress';
 
 interface PokemonHomeBoxProps {
   box: HomeBoxData;
@@ -32,6 +33,7 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
   const isCompleted = box.caughtCount === box.pokemonList.length;
   const percentage = Math.round((box.caughtCount / box.pokemonList.length) * 100);
   const hasBaseCount = box.hasBaseCount || 0;
+  const toTransferCount = box.pokemonList.filter((p) => needsHomeTransfer(caughtMap[p.id])).length;
 
   return (
     <div className={`home-box-card ${isCompleted ? 'completed' : ''}`}>
@@ -46,6 +48,14 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
           {hasBaseCount > 0 && (
             <span style={{ fontSize: '0.78rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.2rem', marginRight: '0.4rem' }}>
               <GitBranch size={13} /> {hasBaseCount} Base
+            </span>
+          )}
+          {toTransferCount > 0 && (
+            <span
+              title="Caught Pokemon in this box that still need to be transferred to HOME"
+              style={{ fontSize: '0.78rem', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginRight: '0.4rem' }}
+            >
+              <Upload size={13} /> {toTransferCount} To Transfer
             </span>
           )}
           {isCompleted && <CheckCircle2 size={16} color="var(--accent-green)" />}
