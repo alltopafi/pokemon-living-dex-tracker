@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
-// Default Target Shutdown Date: December 31, 2026 23:59:59 UTC
-const SHUTDOWN_TARGET_TIMESTAMP = new Date('2026-12-31T23:59:59Z').getTime();
+// Shutdown: February 25, 2027, 7:00 PM PST (UTC-8) = 2027-02-26 03:00 UTC
+const SHUTDOWN_TARGET_TIMESTAMP = new Date('2027-02-25T19:00:00-08:00').getTime();
 
 const BANNER_DISMISSED_KEY = 'pokemon_bank_banner_minimized_v1';
 
@@ -41,7 +41,7 @@ export const BankShutdownBanner: React.FC = () => {
           </div>
           <div>
             <span className="bank-headline">Pokémon Bank Shutdown Countdown</span>
-            <span className="bank-subtext">Estimated Service End: Dec 31, 2026</span>
+            <span className="bank-subtext">Service Ends: Feb 25, 2027, 7:00 PM PST</span>
           </div>
         </div>
 
