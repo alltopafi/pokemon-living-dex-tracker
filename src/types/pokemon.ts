@@ -33,6 +33,8 @@ export interface RegionInfo {
   endId: number;
   total: number;
   nativeGames: string[];
+  /** True when the region's native games released only on Nintendo Switch (Gen 8 and Gen 9). */
+  switchOnly?: boolean;
 }
 
 export type ObtainmentStatus = 'uncaught' | 'caught' | 'has_base';

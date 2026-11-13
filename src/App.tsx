@@ -29,6 +29,7 @@ import { CaughtHistoryModal } from './components/CaughtHistoryModal';
 import { UserLoginModal } from './components/UserLoginModal';
 import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
+import { getNonSwitchProgress } from './utils/progress';
 
 function App() {
   const [activeRegion, setActiveRegion] = useState<RegionId>(() => loadActiveRegion());
@@ -400,6 +401,8 @@ function App() {
     return Object.values(caughtMap).filter(v => v.caught || v.status === 'caught' || v.status === 'has_base').length;
   }, [caughtMap]);
 
+  const nonSwitchProgress = useMemo(() => getNonSwitchProgress(caughtMap), [caughtMap]);
+
   // Export / Import
   const handleExport = () => {
     exportBackup(caughtMap);
@@ -424,6 +427,8 @@ function App() {
       <Header
         totalCaught={totalCaughtCount}
         totalDex={1025}
+        nonSwitchCaught={nonSwitchProgress.caught}
+        nonSwitchTotal={nonSwitchProgress.total}
         activeRegionName={activeRegionInfo.name}
         regionCaught={regionCaughtCount}
         regionTotal={activeRegionInfo.total}

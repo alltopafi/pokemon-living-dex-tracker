@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Trophy, CheckCircle, CircleDot } from 'lucide-react';
 import { REGIONS } from '../data/pokemonData';
 import { CaughtStateMap } from '../types/pokemon';
+import { getNonSwitchProgress } from '../utils/progress';
 
 interface StatsModalProps {
   caughtMap: CaughtStateMap;
@@ -15,6 +16,7 @@ export const StatsDashboardModal: React.FC<StatsModalProps> = ({ caughtMap, onCl
 
   const totalDex = 1025;
   const globalPct = ((totalCaught / totalDex) * 100).toFixed(1);
+  const nonSwitch = getNonSwitchProgress(caughtMap);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -29,6 +31,9 @@ export const StatsDashboardModal: React.FC<StatsModalProps> = ({ caughtMap, onCl
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Living Dex Breakdown</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               Overall Progress: <strong>{totalCaught}</strong> / {totalDex} ({globalPct}%)
+            </p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Non-Switch (Gen 1-7): <strong>{nonSwitch.caught}</strong> / {nonSwitch.total} ({nonSwitch.percentage}%)
             </p>
           </div>
         </div>

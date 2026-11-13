@@ -89,7 +89,8 @@ export const REGIONS: RegionInfo[] = [
     startId: 810,
     endId: 905,
     total: 96,
-    nativeGames: ['Sword', 'Shield', 'Legends: Arceus']
+    nativeGames: ['Sword', 'Shield', 'Legends: Arceus'],
+    switchOnly: true
   },
   {
     id: 'paldea',
@@ -99,7 +100,8 @@ export const REGIONS: RegionInfo[] = [
     startId: 906,
     endId: 1025,
     total: 120,
-    nativeGames: ['Scarlet', 'Violet', 'The Teal Mask', 'The Indigo Disk']
+    nativeGames: ['Scarlet', 'Violet', 'The Teal Mask', 'The Indigo Disk'],
+    switchOnly: true
   }
 ];
 

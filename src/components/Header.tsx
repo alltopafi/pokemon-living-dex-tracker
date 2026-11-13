@@ -5,6 +5,8 @@ import { FilterState, SpriteStyle } from '../types/pokemon';
 interface HeaderProps {
   totalCaught: number;
   totalDex: number;
+  nonSwitchCaught: number;
+  nonSwitchTotal: number;
   activeRegionName: string;
   regionCaught: number;
   regionTotal: number;
@@ -43,6 +45,8 @@ const ALL_GAME_OPTIONS = [
 export const Header: React.FC<HeaderProps> = ({
   totalCaught,
   totalDex,
+  nonSwitchCaught,
+  nonSwitchTotal,
   activeRegionName,
   regionCaught,
   regionTotal,
@@ -65,6 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const globalPercentage = Math.round((totalCaught / totalDex) * 100);
   const regionPercentage = Math.round((regionCaught / regionTotal) * 100);
+  const nonSwitchPercentage = Math.round((nonSwitchCaught / nonSwitchTotal) * 100);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -213,6 +218,22 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div className="progress-bar-bg">
             <div className="progress-bar-fill" style={{ width: `${globalPercentage}%` }} />
+          </div>
+        </div>
+
+        {/* National Dex excluding Switch-era games (Gen 8 Galar/Hisui, Gen 9 Paldea) */}
+        <div className="progress-group">
+          <div className="progress-info">
+            <span className="progress-label" title="National Dex excluding Gen 8 (Galar/Hisui) and Gen 9 (Paldea)">
+              Non-Switch Progress
+            </span>
+            <span className="progress-count">
+              {nonSwitchCaught} / {nonSwitchTotal}
+              <span className="progress-percentage">({nonSwitchPercentage}%)</span>
+            </span>
+          </div>
+          <div className="progress-bar-bg">
+            <div className="progress-bar-fill" style={{ width: `${nonSwitchPercentage}%` }} />
           </div>
         </div>
       </div>
