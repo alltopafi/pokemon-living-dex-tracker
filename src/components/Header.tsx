@@ -303,6 +303,8 @@ export const Header: React.FC<HeaderProps> = ({
           <option value="caught_only">Fully Evolved / Caught Only</option>
           <option value="has_base">Has Base Form Only (Needs Evolution)</option>
           <option value="uncaught">Uncaught Only</option>
+          <option value="needs_transfer">Needs Transfer to HOME</option>
+          <option value="in_home">In HOME</option>
         </select>
 
         <select

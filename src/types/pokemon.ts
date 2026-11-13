@@ -44,6 +44,8 @@ export interface PokemonCaughtStatus {
   status?: ObtainmentStatus; // 'uncaught' | 'caught' | 'has_base'
   notes?: string;
   caughtInGame?: string;
+  /** True once this (fully caught) Pokemon has been transferred into Pokemon HOME. */
+  inHome?: boolean;
   timestamp?: number;
 }
 
@@ -53,7 +55,15 @@ export type SpriteStyle = 'official-artwork' | 'home' | 'pixel';
 
 export type ViewMode = 'grid' | 'home-box';
 
-export type FilterStatus = 'all' | 'caught' | 'caught_or_base' | 'caught_only' | 'has_base' | 'uncaught';
+export type FilterStatus =
+  | 'all'
+  | 'caught'
+  | 'caught_or_base'
+  | 'caught_only'
+  | 'has_base'
+  | 'uncaught'
+  | 'in_home'
+  | 'needs_transfer';
 
 export interface FilterState {
   search: string;

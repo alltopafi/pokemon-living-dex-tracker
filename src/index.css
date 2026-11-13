@@ -1443,3 +1443,68 @@ h1, h2, h3, h4, h5, h6 {
   from { transform: translateX(16px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+
+/* HOME transfer status strip (bottom edge of fully caught cards) */
+.home-strip {
+  margin: auto -0.85rem -0.85rem;
+  width: calc(100% + 1.7rem);
+  padding: 0.3rem 0;
+  border: 0;
+  border-radius: 0 0 15px 15px;
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: background 0.2s ease, filter 0.2s ease;
+}
+
+.home-strip.needs-transfer {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--accent-gold);
+  border-top: 1px dashed rgba(251, 191, 36, 0.45);
+}
+
+.home-strip.in-home {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.home-strip:hover:not(.static) {
+  filter: brightness(1.2);
+}
+
+.home-strip.static {
+  cursor: inherit;
+}
+
+/* HOME transfer toggle inside the Pokemon detail modal and batch bar */
+.home-toggle-btn {
+  width: 100%;
+  margin-top: 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(251, 191, 36, 0.5);
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--accent-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.home-toggle-btn.active {
+  border: 1px solid #818cf8;
+  background: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.35);
+}

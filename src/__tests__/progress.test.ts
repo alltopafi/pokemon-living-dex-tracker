@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { REGIONS } from '../data/pokemonData';
 import { CaughtStateMap } from '../types/pokemon';
-import { getNonSwitchProgress } from '../utils/progress';
+import { getNonSwitchProgress, isInHome, needsHomeTransfer } from '../utils/progress';
+import { mergeCaughtStates } from '../utils/storage';
 
 const caughtRange = (start: number, end: number, status: 'caught' | 'has_base' = 'caught'): CaughtStateMap => {
   const map: CaughtStateMap = {};
@@ -39,5 +40,34 @@ describe('getNonSwitchProgress', () => {
   it('does not count entries explicitly marked uncaught', () => {
     const map: CaughtStateMap = { 1: { caught: false, status: 'uncaught' } };
     expect(getNonSwitchProgress(map).caught).toBe(0);
+  });
+});
+
+describe('HOME transfer tracking', () => {
+  it('a fully caught Pokemon is in HOME only when flagged', () => {
+    expect(isInHome({ caught: true, status: 'caught', inHome: true })).toBe(true);
+    expect(isInHome({ caught: true, status: 'caught' })).toBe(false);
+    expect(needsHomeTransfer({ caught: true, status: 'caught' })).toBe(true);
+    expect(needsHomeTransfer({ caught: true, status: 'caught', inHome: true })).toBe(false);
+  });
+
+  it('legacy entries with only caught: true count as fully caught and need transfer', () => {
+    expect(needsHomeTransfer({ caught: true })).toBe(true);
+  });
+
+  it('base forms, uncaught and missing entries are neither in HOME nor awaiting transfer', () => {
+    for (const entry of [{ caught: false, status: 'has_base' as const, inHome: true }, { caught: false, status: 'uncaught' as const, inHome: true }, undefined]) {
+      expect(isInHome(entry)).toBe(false);
+      expect(needsHomeTransfer(entry)).toBe(false);
+    }
+  });
+
+  it('merging keeps the newer entry, including its inHome flag', () => {
+    const local: CaughtStateMap = { 1: { caught: true, status: 'caught', inHome: true, timestamp: 200 } };
+    const remote: CaughtStateMap = { 1: { caught: true, status: 'caught', inHome: false, timestamp: 100 }, 2: { caught: true, status: 'caught', inHome: true, timestamp: 50 } };
+    const merged = mergeCaughtStates(local, remote);
+    expect(merged[1].inHome).toBe(true);
+    expect(merged[2].inHome).toBe(true);
+    expect(mergeCaughtStates(remote, local)[1].inHome).toBe(true);
   });
 });

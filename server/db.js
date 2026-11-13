@@ -52,6 +52,11 @@ export async function initDb() {
       ALTER TABLE pokemon_caught ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'uncaught';
     `);
 
+    // Ensure in_home column (HOME transfer tracking) exists if updating existing database
+    await client.query(`
+      ALTER TABLE pokemon_caught ADD COLUMN IF NOT EXISTS in_home BOOLEAN DEFAULT FALSE;
+    `);
+
     client.release();
     console.log('✅ PostgreSQL Schema initialized successfully');
   } catch (err) {

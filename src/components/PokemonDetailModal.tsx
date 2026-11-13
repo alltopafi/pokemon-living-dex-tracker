@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, ShieldCheck, MapPin, Gamepad2, FileText, Sparkles, GitBranch } from 'lucide-react';
+import { X, Check, ShieldCheck, MapPin, Gamepad2, FileText, Sparkles, GitBranch, Home } from 'lucide-react';
 import { Pokemon, SpriteStyle, ObtainmentStatus, RegionId } from '../types/pokemon';
 import { getSpriteUrl } from '../utils/storage';
 import { getPokemonObtainDetails, ObtainInfo } from '../services/encounterService';
@@ -11,9 +11,11 @@ interface PokemonDetailModalProps {
   status?: ObtainmentStatus;
   initialNotes?: string;
   initialGame?: string;
+  inHome?: boolean;
   spriteStyle: SpriteStyle;
   onClose: () => void;
   onSetStatus: (id: number, status: ObtainmentStatus) => void;
+  onSetInHome: (id: number, inHome: boolean) => void;
   onUpdateNotes: (id: number, notes: string, caughtInGame: string) => void;
   activeRegion?: RegionId;
 }
@@ -24,9 +26,11 @@ export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
   status = isCaught ? 'caught' : 'uncaught',
   initialNotes = '',
   initialGame = '',
+  inHome = false,
   spriteStyle,
   onClose,
   onSetStatus,
+  onSetInHome,
   onUpdateNotes,
   activeRegion
 }) => {
@@ -233,6 +237,17 @@ export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
             <Check size={15} /> Caught / Evolved
           </button>
         </div>
+
+        {currentStatus === 'caught' && (
+          <button
+            type="button"
+            className={`home-toggle-btn ${inHome ? 'active' : ''}`}
+            onClick={() => onSetInHome(pokemon.id, !inHome)}
+            title="Track whether this Pokemon has been transferred into Pokemon HOME"
+          >
+            <Home size={15} /> {inHome ? 'In HOME - click to undo' : 'Mark as transferred to HOME'}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Gamepad2, FileText, CheckSquare, Square, Sparkles } from 'lucide-react';
+import { Check, X, Gamepad2, FileText, CheckSquare, Square, Sparkles, Home } from 'lucide-react';
 import { ObtainmentStatus } from '../types/pokemon';
 
 interface BatchActionBarProps {
@@ -11,6 +11,7 @@ interface BatchActionBarProps {
     status?: ObtainmentStatus;
     caughtInGame?: string;
     notes?: string;
+    inHome?: boolean;
   }) => void;
   onExitBatchMode: () => void;
 }
@@ -42,6 +43,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
   const [markStatus, setMarkStatus] = useState<'keep' | ObtainmentStatus>('caught');
   const [selectedGame, setSelectedGame] = useState<string>('');
   const [batchNotes, setBatchNotes] = useState<string>('');
+  const [homeTransfer, setHomeTransfer] = useState<'keep' | 'in_home' | 'not_in_home'>('keep');
 
   const isAllSelected = selectedCount > 0 && selectedCount === totalVisibleCount;
 
@@ -51,7 +53,8 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
     onApplyBatchUpdate({
       status: markStatus === 'keep' ? undefined : markStatus,
       caughtInGame: selectedGame || undefined,
-      notes: batchNotes.trim() || undefined
+      notes: batchNotes.trim() || undefined,
+      inHome: homeTransfer === 'keep' ? undefined : homeTransfer === 'in_home'
     });
   };
 
@@ -92,6 +95,20 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
             <option value="has_base">Mark as Have Base Form (Needs Evo)</option>
             <option value="uncaught">Mark as Uncaught</option>
             <option value="keep">Keep Current Status</option>
+          </select>
+        </div>
+
+        <div className="batch-field">
+          <label><Home size={14} /> HOME Transfer:</label>
+          <select
+            className="select-control"
+            value={homeTransfer}
+            onChange={(e) => setHomeTransfer(e.target.value as 'keep' | 'in_home' | 'not_in_home')}
+            title="Only applies to Pokemon that end up fully caught"
+          >
+            <option value="keep">Keep Current</option>
+            <option value="in_home">Mark as In HOME</option>
+            <option value="not_in_home">Mark as Not In HOME</option>
           </select>
         </div>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Info, CheckSquare, Square, GitBranch } from 'lucide-react';
+import { Check, Info, CheckSquare, Square, GitBranch, Home, Upload } from 'lucide-react';
 import { Pokemon, SpriteStyle, ObtainmentStatus, RegionId } from '../types/pokemon';
 import { getSpriteUrl } from '../utils/storage';
 import { getRegionalDexNumber } from '../data/pokemonData';
@@ -10,6 +10,8 @@ interface PokemonCardProps {
   status?: ObtainmentStatus;
   spriteStyle: SpriteStyle;
   onToggleCaught: (id: number) => void;
+  inHome?: boolean;
+  onToggleInHome?: (id: number) => void;
   onOpenDetail: (pokemon: Pokemon) => void;
   isBatchMode?: boolean;
   isSelectedInBatch?: boolean;
@@ -24,6 +26,8 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   status = isCaught ? 'caught' : 'uncaught',
   spriteStyle,
   onOpenDetail,
+  inHome = false,
+  onToggleInHome,
   isBatchMode = false,
   isSelectedInBatch = false,
   onToggleBatchSelect,
@@ -38,6 +42,13 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   const isHasBase = status === 'has_base';
   const isFullyCaught = isCaught || status === 'caught';
 
+  const handleHomeStripClick = (e: React.MouseEvent) => {
+    // In batch mode the strip is informational only; let the click select the card
+    if (isBatchMode || !onToggleInHome) return;
+    e.stopPropagation();
+    onToggleInHome(pokemon.id);
+  };
+
   const handleCardClick = () => {
     if (isBatchMode && onToggleBatchSelect) {
       onToggleBatchSelect(pokemon.id);
@@ -46,7 +57,8 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
     }
   };
 
-  const statusLabel = isFullyCaught ? 'Caught' : isHasBase ? 'Base Form Acquired (Needs Evolution)' : 'Uncaught';
+  const homeLabel = isFullyCaught ? (inHome ? 'In HOME' : 'Needs transfer to HOME') : '';
+  const statusLabel = isFullyCaught ? `Caught - ${homeLabel}` : isHasBase ? 'Base Form Acquired (Needs Evolution)' : 'Uncaught';
   const displayIdTooltip = regionalFormattedId ? `${regionalFormattedId} (Nat. ${nationalFormattedId})` : nationalFormattedId;
 
   return (
@@ -104,7 +116,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '0.4rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '0.4rem', marginBottom: isFullyCaught ? '0.55rem' : undefined }}>
         <span className={`origin-tag ${boxLocation ? 'home-box-tag' : ''}`}>
           {boxLocation ? boxLocation : pokemon.region.toUpperCase()}
         </span>
@@ -119,6 +131,18 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
           <Info size={13} />
         </button>
       </div>
+
+      {isFullyCaught && (
+        <button
+          type="button"
+          className={`home-strip ${inHome ? 'in-home' : 'needs-transfer'} ${isBatchMode ? 'static' : ''}`}
+          onClick={handleHomeStripClick}
+          title={isBatchMode ? homeLabel : inHome ? 'In HOME - click to mark as not transferred' : 'Needs transfer - click to mark as in HOME'}
+        >
+          {inHome ? <Home size={12} strokeWidth={2.5} /> : <Upload size={12} strokeWidth={2.5} />}
+          <span>{inHome ? 'In HOME' : 'Needs transfer'}</span>
+        </button>
+      )}
     </div>
   );
 };

@@ -9,6 +9,7 @@ interface PokemonHomeBoxProps {
   caughtMap: CaughtStateMap;
   spriteStyle: SpriteStyle;
   onToggleCaught: (id: number) => void;
+  onToggleInHome: (id: number) => void;
   onOpenDetail: (pokemon: Pokemon) => void;
   isBatchMode: boolean;
   selectedBatchIds: Set<number>;
@@ -21,6 +22,7 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
   caughtMap,
   spriteStyle,
   onToggleCaught,
+  onToggleInHome,
   onOpenDetail,
   isBatchMode,
   selectedBatchIds,
@@ -64,6 +66,8 @@ export const PokemonHomeBox: React.FC<PokemonHomeBoxProps> = ({
               status={st?.status}
               spriteStyle={spriteStyle}
               onToggleCaught={onToggleCaught}
+              inHome={!!st?.inHome}
+              onToggleInHome={onToggleInHome}
               onOpenDetail={onOpenDetail}
               isBatchMode={isBatchMode}
               isSelectedInBatch={selectedBatchIds.has(pokemon.id)}

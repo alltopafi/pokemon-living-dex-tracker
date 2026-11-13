@@ -30,7 +30,7 @@ import { CaughtHistoryModal } from './components/CaughtHistoryModal';
 import { UserLoginModal } from './components/UserLoginModal';
 import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
-import { getNonSwitchProgress, isCountedAsCaught } from './utils/progress';
+import { getNonSwitchProgress, isCountedAsCaught, isFullyCaught, isInHome, needsHomeTransfer } from './utils/progress';
 
 function App() {
   const [activeRegion, setActiveRegion] = useState<RegionId>(() => loadActiveRegion());
@@ -284,6 +284,7 @@ function App() {
           ...prev[id],
           caught: newStatus === 'caught',
           status: newStatus,
+          inHome: newStatus === 'caught' ? prev[id]?.inHome : undefined,
           timestamp: now
         }
       };
@@ -300,10 +301,29 @@ function App() {
           ...prev[id],
           caught: isCaught,
           status: status,
+          // Only a fully caught Pokemon can be in HOME, so reset the flag otherwise
+          inHome: isCaught ? prev[id]?.inHome : undefined,
           timestamp: now
         }
       };
     });
+  };
+
+  // Mark a fully caught Pokemon as transferred to (or not yet in) Pokemon HOME
+  const handleSetInHome = (id: number, inHome: boolean) => {
+    const now = Date.now();
+    setCaughtMap((prev) => {
+      const existing = prev[id];
+      if (!isFullyCaught(existing)) return prev;
+      return {
+        ...prev,
+        [id]: { ...existing!, inHome, timestamp: now }
+      };
+    });
+  };
+
+  const handleToggleInHome = (id: number) => {
+    handleSetInHome(id, !caughtMapRef.current[id]?.inHome);
   };
 
   // Toggle selection for single card in batch mode
@@ -357,6 +377,10 @@ function App() {
         if (pStatus !== 'has_base') return false;
       } else if (filters.status === 'uncaught') {
         if (isAcquired) return false;
+      } else if (filters.status === 'in_home') {
+        if (!isInHome(st)) return false;
+      } else if (filters.status === 'needs_transfer') {
+        if (!needsHomeTransfer(st)) return false;
       }
 
       // 3. Game Caught In Filter
@@ -413,6 +437,7 @@ function App() {
     status?: ObtainmentStatus;
     caughtInGame?: string;
     notes?: string;
+    inHome?: boolean;
   }) => {
     if (selectedBatchIds.size === 0) return;
     const now = Date.now();
@@ -427,10 +452,16 @@ function App() {
         
         const newCaught = newStatus === 'caught';
 
+        // HOME flag only applies to fully caught Pokemon; it is cleared if the status moves away from caught
+        const newInHome = newCaught
+          ? (options.inHome !== undefined ? options.inHome : existing.inHome)
+          : undefined;
+
         next[id] = {
           ...existing,
           caught: newCaught,
           status: newStatus,
+          inHome: newInHome,
           caughtInGame: options.caughtInGame !== undefined ? options.caughtInGame : existing.caughtInGame,
           notes: options.notes !== undefined ? options.notes : existing.notes,
           timestamp: now
@@ -538,6 +569,7 @@ function App() {
               caughtMap={caughtMap}
               spriteStyle={spriteStyle}
               onToggleCaught={handleToggleCaught}
+              onToggleInHome={handleToggleInHome}
               onOpenDetail={(p) => setSelectedPokemon(p)}
               isBatchMode={isBatchMode}
               selectedBatchIds={selectedBatchIds}
@@ -559,6 +591,8 @@ function App() {
                 status={st?.status}
                 spriteStyle={spriteStyle}
                 onToggleCaught={handleToggleCaught}
+                inHome={!!st?.inHome}
+                onToggleInHome={handleToggleInHome}
                 onOpenDetail={(p) => setSelectedPokemon(p)}
                 isBatchMode={isBatchMode}
                 isSelectedInBatch={selectedBatchIds.has(pokemon.id)}
@@ -593,7 +627,9 @@ function App() {
           initialGame={caughtMap[selectedPokemon.id]?.caughtInGame}
           spriteStyle={spriteStyle}
           onClose={() => setSelectedPokemon(null)}
+          inHome={!!caughtMap[selectedPokemon.id]?.inHome}
           onSetStatus={handleSetStatus}
+          onSetInHome={handleSetInHome}
           onUpdateNotes={handleUpdateNotes}
           activeRegion={activeRegion}
         />

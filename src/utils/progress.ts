@@ -12,6 +12,22 @@ export function isCountedAsCaught(status?: PokemonCaughtStatus): boolean {
   return !!status && (status.caught || status.status === 'caught' || status.status === 'has_base');
 }
 
+/** Fully caught / evolved (a held base form does not count, since it is not ready to transfer). */
+export function isFullyCaught(status?: PokemonCaughtStatus): boolean {
+  if (!status) return false;
+  return (status.status ?? (status.caught ? 'caught' : 'uncaught')) === 'caught';
+}
+
+/** Fully caught and already transferred into Pokemon HOME. */
+export function isInHome(status?: PokemonCaughtStatus): boolean {
+  return isFullyCaught(status) && !!status?.inHome;
+}
+
+/** Fully caught but not yet transferred into Pokemon HOME. */
+export function needsHomeTransfer(status?: PokemonCaughtStatus): boolean {
+  return isFullyCaught(status) && !status?.inHome;
+}
+
 export function toPercentage(caught: number, total: number): number {
   return total === 0 ? 0 : Math.round((caught / total) * 100);
 }

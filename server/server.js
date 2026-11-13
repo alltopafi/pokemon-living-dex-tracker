@@ -45,7 +45,7 @@ app.post('/api/user/login', async (req, res) => {
 
     // 2. Fetch User's Caught Records
     const caughtRes = await pool.query(
-      'SELECT pokemon_id, caught, status, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
+      'SELECT pokemon_id, caught, status, notes, caught_in_game, in_home, updated_at FROM pokemon_caught WHERE user_id = $1',
       [user.id]
     );
 
@@ -56,6 +56,7 @@ app.post('/api/user/login', async (req, res) => {
         status: row.status || (row.caught ? 'caught' : 'uncaught'),
         notes: row.notes || undefined,
         caughtInGame: row.caught_in_game || undefined,
+        inHome: row.in_home || undefined,
         timestamp: row.updated_at ? new Date(row.updated_at).getTime() : undefined
       };
     }
@@ -81,7 +82,7 @@ app.get('/api/caught/:username', async (req, res) => {
 
     const userId = userRes.rows[0].id;
     const caughtRes = await pool.query(
-      'SELECT pokemon_id, caught, status, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
+      'SELECT pokemon_id, caught, status, notes, caught_in_game, in_home, updated_at FROM pokemon_caught WHERE user_id = $1',
       [userId]
     );
 
@@ -92,6 +93,7 @@ app.get('/api/caught/:username', async (req, res) => {
         status: row.status || (row.caught ? 'caught' : 'uncaught'),
         notes: row.notes || undefined,
         caughtInGame: row.caught_in_game || undefined,
+        inHome: row.in_home || undefined,
         timestamp: row.updated_at ? new Date(row.updated_at).getTime() : undefined
       };
     }
@@ -130,6 +132,7 @@ app.post('/api/caught/sync', async (req, res) => {
       const statuses = [];
       const notesArr = [];
       const games = [];
+      const inHomes = [];
       const timestamps = [];
 
       for (const [pokemonIdStr, statusObj] of Object.entries(caughtMap)) {
@@ -145,29 +148,33 @@ app.post('/api/caught/sync', async (req, res) => {
         statuses.push(statusStr);
         notesArr.push(statusObj.notes || null);
         games.push(statusObj.caughtInGame || null);
+        // Only a fully caught Pokemon can be in HOME
+        inHomes.push(isCaughtBool && !!statusObj.inHome);
         timestamps.push(ts);
       }
 
       if (pokemonIds.length > 0) {
         await client.query(
-          `INSERT INTO pokemon_caught (user_id, pokemon_id, caught, status, notes, caught_in_game, updated_at)
-           SELECT $1, u.pokemon_id, u.caught, u.status, u.notes, u.caught_in_game, u.updated_at
+          `INSERT INTO pokemon_caught (user_id, pokemon_id, caught, status, notes, caught_in_game, in_home, updated_at)
+           SELECT $1, u.pokemon_id, u.caught, u.status, u.notes, u.caught_in_game, u.in_home, u.updated_at
            FROM UNNEST(
              $2::int[],
              $3::boolean[],
              $4::varchar[],
              $5::text[],
              $6::varchar[],
-             $7::timestamp[]
-           ) AS u(pokemon_id, caught, status, notes, caught_in_game, updated_at)
+             $7::boolean[],
+             $8::timestamp[]
+           ) AS u(pokemon_id, caught, status, notes, caught_in_game, in_home, updated_at)
            ON CONFLICT (user_id, pokemon_id) 
            DO UPDATE SET 
              caught = EXCLUDED.caught,
              status = EXCLUDED.status,
              notes = EXCLUDED.notes,
              caught_in_game = EXCLUDED.caught_in_game,
+             in_home = EXCLUDED.in_home,
              updated_at = EXCLUDED.updated_at;`,
-          [userId, pokemonIds, caughts, statuses, notesArr, games, timestamps]
+          [userId, pokemonIds, caughts, statuses, notesArr, games, inHomes, timestamps]
         );
       }
 
@@ -175,7 +182,7 @@ app.post('/api/caught/sync', async (req, res) => {
 
       // 3. Fetch full merged state from PostgreSQL to return to client
       const allCaughtRes = await client.query(
-        'SELECT pokemon_id, caught, status, notes, caught_in_game, updated_at FROM pokemon_caught WHERE user_id = $1',
+        'SELECT pokemon_id, caught, status, notes, caught_in_game, in_home, updated_at FROM pokemon_caught WHERE user_id = $1',
         [userId]
       );
 
@@ -186,6 +193,7 @@ app.post('/api/caught/sync', async (req, res) => {
           status: row.status || (row.caught ? 'caught' : 'uncaught'),
           notes: row.notes || undefined,
           caughtInGame: row.caught_in_game || undefined,
+          inHome: row.in_home || undefined,
           timestamp: row.updated_at ? new Date(row.updated_at).getTime() : undefined
         };
       }
