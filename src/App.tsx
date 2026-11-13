@@ -30,7 +30,7 @@ import { CaughtHistoryModal } from './components/CaughtHistoryModal';
 import { UserLoginModal } from './components/UserLoginModal';
 import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
-import { getNonSwitchProgress, isCountedAsCaught, isFullyCaught, isInHome, needsHomeTransfer } from './utils/progress';
+import { getNonSwitchProgress, isCountedAsCaught, isInHome, needsHomeTransfer } from './utils/progress';
 
 function App() {
   const [activeRegion, setActiveRegion] = useState<RegionId>(() => loadActiveRegion());
@@ -284,7 +284,7 @@ function App() {
           ...prev[id],
           caught: newStatus === 'caught',
           status: newStatus,
-          inHome: newStatus === 'caught' ? prev[id]?.inHome : undefined,
+          inHome: newStatus !== 'uncaught' ? prev[id]?.inHome : undefined,
           timestamp: now
         }
       };
@@ -301,20 +301,20 @@ function App() {
           ...prev[id],
           caught: isCaught,
           status: status,
-          // Only a fully caught Pokemon can be in HOME, so reset the flag otherwise
-          inHome: isCaught ? prev[id]?.inHome : undefined,
+          // Only a Pokemon held in a save (caught or base form) can be in HOME, so reset the flag when uncaught
+          inHome: status !== 'uncaught' ? prev[id]?.inHome : undefined,
           timestamp: now
         }
       };
     });
   };
 
-  // Mark a fully caught Pokemon as transferred to (or not yet in) Pokemon HOME
+  // Mark a caught (or base form) Pokemon as transferred to (or not yet in) Pokemon HOME
   const handleSetInHome = (id: number, inHome: boolean) => {
     const now = Date.now();
     setCaughtMap((prev) => {
       const existing = prev[id];
-      if (!isFullyCaught(existing)) return prev;
+      if (!isCountedAsCaught(existing)) return prev;
       return {
         ...prev,
         [id]: { ...existing!, inHome, timestamp: now }
@@ -452,8 +452,8 @@ function App() {
         
         const newCaught = newStatus === 'caught';
 
-        // HOME flag only applies to fully caught Pokemon; it is cleared if the status moves away from caught
-        const newInHome = newCaught
+        // HOME flag only applies to Pokemon held in a save; it is cleared if the status becomes uncaught
+        const newInHome = newStatus !== 'uncaught'
           ? (options.inHome !== undefined ? options.inHome : existing.inHome)
           : undefined;
 

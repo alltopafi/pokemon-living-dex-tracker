@@ -238,7 +238,7 @@ export const PokemonDetailModal: React.FC<PokemonDetailModalProps> = ({
           </button>
         </div>
 
-        {currentStatus === 'caught' && (
+        {currentStatus !== 'uncaught' && (
           <button
             type="button"
             className={`home-toggle-btn ${inHome ? 'active' : ''}`}

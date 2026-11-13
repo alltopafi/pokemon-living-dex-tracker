@@ -148,8 +148,8 @@ app.post('/api/caught/sync', async (req, res) => {
         statuses.push(statusStr);
         notesArr.push(statusObj.notes || null);
         games.push(statusObj.caughtInGame || null);
-        // Only a fully caught Pokemon can be in HOME
-        inHomes.push(isCaughtBool && !!statusObj.inHome);
+        // Only a Pokemon held in a save (caught or base form) can be in HOME
+        inHomes.push(statusStr !== 'uncaught' && !!statusObj.inHome);
         timestamps.push(ts);
       }
 

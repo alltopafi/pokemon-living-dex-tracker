@@ -44,7 +44,7 @@ export interface PokemonCaughtStatus {
   status?: ObtainmentStatus; // 'uncaught' | 'caught' | 'has_base'
   notes?: string;
   caughtInGame?: string;
-  /** True once this (fully caught) Pokemon has been transferred into Pokemon HOME. */
+  /** True once this caught (or base form) Pokemon has been transferred into Pokemon HOME. */
   inHome?: boolean;
   timestamp?: number;
 }

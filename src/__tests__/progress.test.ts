@@ -44,19 +44,25 @@ describe('getNonSwitchProgress', () => {
 });
 
 describe('HOME transfer tracking', () => {
-  it('a fully caught Pokemon is in HOME only when flagged', () => {
+  it('a caught Pokemon is in HOME only when flagged', () => {
     expect(isInHome({ caught: true, status: 'caught', inHome: true })).toBe(true);
     expect(isInHome({ caught: true, status: 'caught' })).toBe(false);
     expect(needsHomeTransfer({ caught: true, status: 'caught' })).toBe(true);
     expect(needsHomeTransfer({ caught: true, status: 'caught', inHome: true })).toBe(false);
   });
 
-  it('legacy entries with only caught: true count as fully caught and need transfer', () => {
+  it('legacy entries with only caught: true need transfer', () => {
     expect(needsHomeTransfer({ caught: true })).toBe(true);
   });
 
-  it('base forms, uncaught and missing entries are neither in HOME nor awaiting transfer', () => {
-    for (const entry of [{ caught: false, status: 'has_base' as const, inHome: true }, { caught: false, status: 'uncaught' as const, inHome: true }, undefined]) {
+  it('base forms are tracked the same way as caught Pokemon', () => {
+    expect(needsHomeTransfer({ caught: false, status: 'has_base' })).toBe(true);
+    expect(isInHome({ caught: false, status: 'has_base', inHome: true })).toBe(true);
+    expect(needsHomeTransfer({ caught: false, status: 'has_base', inHome: true })).toBe(false);
+  });
+
+  it('uncaught and missing entries are neither in HOME nor awaiting transfer', () => {
+    for (const entry of [{ caught: false, status: 'uncaught' as const, inHome: true }, undefined]) {
       expect(isInHome(entry)).toBe(false);
       expect(needsHomeTransfer(entry)).toBe(false);
     }

@@ -57,8 +57,9 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
     }
   };
 
-  const homeLabel = isFullyCaught ? (inHome ? 'In HOME' : 'Needs transfer to HOME') : '';
-  const statusLabel = isFullyCaught ? `Caught - ${homeLabel}` : isHasBase ? 'Base Form Acquired (Needs Evolution)' : 'Uncaught';
+  const showHomeStrip = isFullyCaught || isHasBase;
+  const homeLabel = showHomeStrip ? (inHome ? 'In HOME' : 'Needs transfer to HOME') : '';
+  const statusLabel = isFullyCaught ? `Caught - ${homeLabel}` : isHasBase ? `Base Form Acquired (Needs Evolution) - ${homeLabel}` : 'Uncaught';
   const displayIdTooltip = regionalFormattedId ? `${regionalFormattedId} (Nat. ${nationalFormattedId})` : nationalFormattedId;
 
   return (
@@ -116,7 +117,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '0.4rem', marginBottom: isFullyCaught ? '0.55rem' : undefined }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '0.4rem', marginBottom: showHomeStrip ? '0.55rem' : undefined }}>
         <span className={`origin-tag ${boxLocation ? 'home-box-tag' : ''}`}>
           {boxLocation ? boxLocation : pokemon.region.toUpperCase()}
         </span>
@@ -132,7 +133,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
         </button>
       </div>
 
-      {isFullyCaught && (
+      {showHomeStrip && (
         <button
           type="button"
           className={`home-strip ${inHome ? 'in-home' : 'needs-transfer'} ${isBatchMode ? 'static' : ''}`}
