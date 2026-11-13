@@ -17,7 +17,8 @@ import {
   mergeCaughtStates
 } from './utils/storage';
 import { buildHomeBoxes } from './utils/boxHelper';
-import { loginUser, syncCaughtState, fetchUserCaughtState } from './services/apiService';
+import { loginUser, syncCaughtState, fetchUserCaughtState, uploadCaughtState, downloadCaughtState } from './services/apiService';
+import { ToastContainer, ToastMessage } from './components/ToastContainer';
 import { Header } from './components/Header';
 import { BankShutdownBanner } from './components/BankShutdownBanner';
 import { RegionTabs } from './components/RegionTabs';
@@ -29,7 +30,7 @@ import { CaughtHistoryModal } from './components/CaughtHistoryModal';
 import { UserLoginModal } from './components/UserLoginModal';
 import { BatchActionBar } from './components/BatchActionBar';
 import { SearchX } from 'lucide-react';
-import { getNonSwitchProgress } from './utils/progress';
+import { getNonSwitchProgress, isCountedAsCaught } from './utils/progress';
 
 function App() {
   const [activeRegion, setActiveRegion] = useState<RegionId>(() => loadActiveRegion());
@@ -45,6 +46,9 @@ function App() {
   const [username, setUsername] = useState<string>(() => loadSavedUsername());
   const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncAction, setSyncAction] = useState<'upload' | 'download' | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastIdRef = useRef<number>(0);
 
   // Synchronization refs to prevent race conditions, rapid requests, and stale overwrites
   const syncVersionRef = useRef<number>(0);
@@ -160,7 +164,18 @@ function App() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [username]);
 
-  const handleManualSync = async () => {
+  const showToast = useCallback((type: ToastMessage['type'], message: string) => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), type === 'error' ? 6000 : 4000);
+  }, []);
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // Upload: push the local collection to the database (local entries overwrite the remote ones)
+  const handleUploadSync = async () => {
     if (!username) {
       setIsUserModalOpen(true);
       return;
@@ -168,7 +183,54 @@ function App() {
     if (syncDebounceTimerRef.current) {
       clearTimeout(syncDebounceTimerRef.current);
     }
-    await performPostgresSync(username, caughtMapRef.current);
+    setSyncAction('upload');
+    try {
+      const local = caughtMapRef.current;
+      const result = await uploadCaughtState(username, local);
+      if (result.ok) {
+        const caught = Object.values(local).filter(isCountedAsCaught).length;
+        showToast('success', `Upload complete: ${caught} Pokémon saved to @${username}.`);
+      } else {
+        showToast('error', `Upload failed: ${result.error}`);
+      }
+    } finally {
+      setSyncAction(null);
+    }
+  };
+
+  // Download: pull the database copy and merge it into the local collection (newest entry wins)
+  const handleDownloadSync = async () => {
+    if (!username) {
+      setIsUserModalOpen(true);
+      return;
+    }
+    setSyncAction('download');
+    try {
+      const result = await downloadCaughtState(username);
+      if (!result.ok) {
+        showToast('error', `Download failed: ${result.error}`);
+        return;
+      }
+      const local = caughtMapRef.current;
+      const merged = mergeCaughtStates(local, result.caughtMap);
+      const updated = Object.keys(merged).filter((id) => merged[Number(id)] !== local[Number(id)]).length;
+      if (updated > 0) {
+        setCaughtMap((prev) => {
+          isApplyingRemoteRef.current = true;
+          const next = mergeCaughtStates(prev, result.caughtMap);
+          saveCaughtState(next);
+          return next;
+        });
+      }
+      showToast(
+        'success',
+        updated > 0
+          ? `Download complete: ${updated} Pokémon updated from @${username}.`
+          : `Download complete: already up to date with @${username}.`
+      );
+    } finally {
+      setSyncAction(null);
+    }
   };
 
   const handleUserLogin = async (user: string) => {
@@ -424,6 +486,7 @@ function App() {
   return (
     <div className="app-container" style={{ paddingBottom: isBatchMode ? '140px' : '3rem' }}>
       <BankShutdownBanner />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <Header
         totalCaught={totalCaughtCount}
         totalDex={1025}
@@ -442,7 +505,9 @@ function App() {
         onOpenHistory={() => setIsHistoryOpen(true)}
         username={username}
         onOpenUserModal={() => setIsUserModalOpen(true)}
-        onManualSync={handleManualSync}
+        onUploadSync={handleUploadSync}
+        onDownloadSync={handleDownloadSync}
+        syncAction={syncAction}
         isSyncing={isSyncing}
         isBatchMode={isBatchMode}
         onToggleBatchMode={() => {

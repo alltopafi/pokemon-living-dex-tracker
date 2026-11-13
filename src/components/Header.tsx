@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Search, Download, Upload, BarChart3, Settings, Layers, User, Database, RefreshCw, LayoutGrid, Package, History } from 'lucide-react';
+import { Search, Download, Upload, BarChart3, Settings, Layers, User, Database, RefreshCw, LayoutGrid, Package, History, UploadCloud, DownloadCloud } from 'lucide-react';
 import { FilterState, SpriteStyle } from '../types/pokemon';
 
 interface HeaderProps {
@@ -22,7 +22,9 @@ interface HeaderProps {
   onToggleBatchMode: () => void;
   username: string | null;
   onOpenUserModal: () => void;
-  onManualSync: () => void;
+  onUploadSync: () => void;
+  onDownloadSync: () => void;
+  syncAction: 'upload' | 'download' | null;
   isSyncing?: boolean;
 }
 
@@ -62,14 +64,22 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleBatchMode,
   username,
   onOpenUserModal,
-  onManualSync,
+  onUploadSync,
+  onDownloadSync,
+  syncAction,
   isSyncing = false
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const globalPercentage = Math.round((totalCaught / totalDex) * 100);
   const regionPercentage = Math.round((regionCaught / regionTotal) * 100);
-  const nonSwitchPercentage = Math.round((nonSwitchCaught / nonSwitchTotal) * 100);
+  const syncBusy = isSyncing || syncAction !== null;
+  const syncButtonStyle: React.CSSProperties = {
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+    background: 'rgba(56, 189, 248, 0.15)',
+    color: '#ffffff'
+  };
+  const nonSwitchPercentage =Math.round((nonSwitchCaught / nonSwitchTotal) * 100);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,24 +107,36 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-actions">
-          {/* Sync Now Button */}
-          <button 
+          {/* Upload Sync Button */}
+          <button
             className="action-btn"
-            onClick={onManualSync}
-            disabled={isSyncing}
-            title={username ? `Sync & merge collection with Database (@${username})` : 'Click to log in and sync to Database'}
-            style={{
-              borderColor: 'rgba(56, 189, 248, 0.4)',
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: '#ffffff'
-            }}
+            onClick={onUploadSync}
+            disabled={syncBusy}
+            title={username ? `Upload your local collection to the Database (@${username})` : 'Click to log in and sync to Database'}
+            style={syncButtonStyle}
           >
-            <RefreshCw 
-              size={16} 
-              color="var(--accent-blue)" 
-              style={{ animation: isSyncing ? 'spin 1s linear infinite' : undefined }} 
-            />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+            {syncAction === 'upload' ? (
+              <RefreshCw size={16} color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <UploadCloud size={16} color="var(--accent-blue)" />
+            )}
+            <span>{syncAction === 'upload' ? 'Uploading...' : 'Upload'}</span>
+          </button>
+
+          {/* Download Sync Button */}
+          <button
+            className="action-btn"
+            onClick={onDownloadSync}
+            disabled={syncBusy}
+            title={username ? `Download the Database collection and merge it into this device (@${username})` : 'Click to log in and sync to Database'}
+            style={syncButtonStyle}
+          >
+            {syncAction === 'download' ? (
+              <RefreshCw size={16} color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <DownloadCloud size={16} color="var(--accent-blue)" />
+            )}
+            <span>{syncAction === 'download' ? 'Downloading...' : 'Download'}</span>
           </button>
 
           {/* Username / DB Sync Badge */}

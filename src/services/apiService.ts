@@ -59,6 +59,50 @@ export async function syncCaughtState(username: string, caughtMap: CaughtStateMa
   }
 }
 
+export type ApiResult =
+  | { ok: true; caughtMap: CaughtStateMap }
+  | { ok: false; error: string };
+
+async function readError(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    return body.error || `Server responded with ${res.status}`;
+  } catch {
+    return `Server responded with ${res.status}`;
+  }
+}
+
+/** Push the local collection to the database. Distinguishes failure from an empty result. */
+export async function uploadCaughtState(username: string, caughtMap: CaughtStateMap): Promise<ApiResult> {
+  try {
+    const res = await fetch(`${API_BASE}/caught/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, caughtMap })
+    });
+    if (!res.ok) return { ok: false, error: await readError(res) };
+    const data = await res.json();
+    return { ok: true, caughtMap: data.caughtMap || {} };
+  } catch (e) {
+    console.warn('Failed to upload to backend', e);
+    return { ok: false, error: 'Could not reach the server' };
+  }
+}
+
+/** Pull the collection stored in the database. Distinguishes failure from an empty result. */
+export async function downloadCaughtState(username: string): Promise<ApiResult> {
+  try {
+    const res = await fetch(`${API_BASE}/caught/${encodeURIComponent(username)}`);
+    if (res.status === 404) return { ok: false, error: 'No saved collection found for this user yet. Upload first.' };
+    if (!res.ok) return { ok: false, error: await readError(res) };
+    const data = await res.json();
+    return { ok: true, caughtMap: data.caughtMap || {} };
+  } catch (e) {
+    console.warn('Failed to download from backend', e);
+    return { ok: false, error: 'Could not reach the server' };
+  }
+}
+
 export async function checkApiHealth(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
